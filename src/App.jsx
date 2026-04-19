@@ -1,7 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
-  ReactFlowProvider, // ← Cambiar a ReactFlowProvider
+  ReactFlowProvider,
   Controls,
   Background,
   MiniMap,
@@ -15,9 +15,12 @@ import '@xyflow/react/dist/style.css';
 
 import Navbar from './components/Layout/Navbar';
 import Sidebar from './components/Layout/Sidebar';
-import RouterNode from './components/nodes/RouterNode';
+import SwitchNode from './components/Nodes/SwitchNode';
+import Alert from './components/UI/Alert';
+import NodeEditModal from './components/UI/NodeEditModal';
+
 const nodeTypes = {
-  router: RouterNode,
+  switch: SwitchNode,
 };
 
 const initialNodes = [];
@@ -31,42 +34,296 @@ function App() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const nodeIdRef = useRef(1);
+  const [alert, setAlert] = useState(null);
+  const [connectingNodeId, setConnectingNodeId] = useState(null);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(true);
+  
+  const [newNodeModal, setNewNodeModal] = useState({
+    isOpen: false,
+    nodeId: null,
+    nodeData: null
+  });
 
+  const showAlert = useCallback((type, message, duration = 3000) => {
+    setAlert({ type, message, duration });
+  }, []);
 
-  const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge({ 
-      ...params, 
-      animated: true,
-      markerEnd: { type: MarkerType.ArrowClosed }
-    }, eds)),
-    [setEdges]
-  );
+  const closeAlert = useCallback(() => {
+    setAlert(null);
+  }, []);
+
+  // ════════════════════════════════════════════════════════════
+  //  CARGAR DISPOSITIVOS DESDE BD AL INICIAR
+  // ════════════════════════════════════════════════════════════
+  useEffect(() => {
+    const loadDevicesFromDB = async () => {
+      try {
+
+        
+        // Obtener dispositivos
+        const devicesResponse = await fetch('http://localhost:8080/api/devices');
+        if (!devicesResponse.ok) {
+          throw new Error('Error al cargar dispositivos');
+        }
+        const devices = await devicesResponse.json();
+        
+        // Obtener conexiones
+        const connectionsResponse = await fetch('http://localhost:8080/api/connections');
+        if (!connectionsResponse.ok) {
+          throw new Error('Error al cargar conexiones');
+        }
+        const connections = await connectionsResponse.json();
+        
+        console.log(' Dispositivos recibidos:', devices);
+        console.log(' Conexiones recibidas:', connections);
+
+        // Transformar dispositivos a nodos de React Flow
+        const loadedNodes = devices.map((device, ) => {
+          // Construir posición desde position_x y position_y
+          const position = {
+            x: device.position_x || 100,
+            y: device.position_y || 100
+          };
+          
+          console.log(`📍 ${device.nombre_dispositivo} → x: ${position.x}, y: ${position.y}`);
+          
+          return {
+            id: device.node_id,
+            type: device.tipo || '',
+            position: position,
+            data: {
+              label: device.nombre_dispositivo,
+              ip: device.ip,
+              mac: device.mac,
+              gateway: device.gateway,
+              vlan: device.vlan,
+              puerto: device.puerto,
+              dns: device.dns,
+              descripcion: device.descripcion,
+              ubicacion: device.ubicacion,
+              status: device.status_summary?.status || 'unknown',
+              categoria: device.categoria,
+              createdAt: device.created_at,
+              onUpdate: updateNodeData,
+              onDelete: deleteNode,
+            }
+          };
+        });
+
+        // Transformar conexiones a edges de React Flow
+        const loadedEdges = connections.map((conn, index) => ({
+            id: `edge-${conn.id || index}`,
+            source: conn.source.node_id,
+            target: conn.target.node_id,
+            sourceHandle: conn.source_handle || null,  
+            targetHandle: conn.target_handle || null,  
+            label: conn.connection_label || '',
+            animated: true,
+            markerEnd: { type: MarkerType.ArrowClosed },
+            type: 'default',
+        }));
+
+        // Actualizar estado
+        setNodes(loadedNodes);
+        setEdges(loadedEdges);
+
+        // Actualizar contador de nodos
+        if (devices.length > 0) {
+          const maxNodeNumber = Math.max(
+            ...devices.map(d => {
+              const match = d.node_id.match(/\d+$/);
+              return match ? parseInt(match[0]) : 0;
+            })
+          );
+          nodeIdRef.current = maxNodeNumber + 1;
+        }
+
+        showAlert('success', `✅ ${devices.length} dispositivos y ${connections.length} conexiones cargados`, 3000);
+        
+      } catch (error) {
+        console.error('❌ Error al cargar dispositivos:', error);
+        showAlert('error', `❌ Error al cargar red: ${error.message}`, 5000);
+      } finally {
+        setIsLoadingDevices(false);
+      }
+    };
+
+    loadDevicesFromDB();
+  }, []); // Solo se ejecuta al montar el componente
+
+  const updateNodeData = useCallback((nodeId, updatedData) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === nodeId) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              ...updatedData,
+            },
+          };
+        }
+        return node;
+      })
+    );
+    showAlert('success', `Nodo actualizado correctamente`, 2000);
+  }, [setNodes, showAlert]);
+
+  const deleteNode = useCallback((nodeId) => {
+    setNodes((nds) => {
+      const nodeToDelete = nds.find(n => n.id === nodeId);
+      if (nodeToDelete) {
+        showAlert('info', `${nodeToDelete.data.label} eliminado`, 2000);
+      }
+      return nds.filter((node) => node.id !== nodeId);
+    });
+    
+    setEdges((eds) => eds.filter((edge) => 
+      edge.source !== nodeId && edge.target !== nodeId
+    ));
+  }, [setNodes, setEdges, showAlert]);
+
+  const onConnectStart = useCallback((event, { nodeId }) => {
+    console.log(' Conexión iniciada desde:', nodeId);
+    setConnectingNodeId(nodeId);
+  }, []);
+
+  const onConnectEnd = useCallback(() => {
+    console.log(' Conexión terminada');
+    setTimeout(() => {
+      setConnectingNodeId(() => {
+        console.log(' Limpiando estado por onConnectEnd');
+        return null;
+      });
+    }, 150);
+  }, []);
+
+  const isValidConnection = useCallback((connection) => {
+    const sourceNode = nodes.find(n => n.id === connection.source);
+    const targetNode = nodes.find(n => n.id === connection.target);
+
+    if (!sourceNode || !targetNode) {
+      showAlert('error', 'Error: Nodo no encontrado');
+      return false;
+    }
+
+    if (connection.source === connection.target) {
+      showAlert('warning', 'No puedes conectar un nodo consigo mismo');
+      return false;
+    }
+
+    const sourceHandleId = connection.sourceHandle;
+    if (sourceHandleId && sourceHandleId.includes('-in')) {
+      showAlert('error', 'Error: Debes conectar desde un handle de SALIDA hacia un handle de ENTRADA');
+      return false;
+    }
+
+    return true;
+  }, [nodes, showAlert]);
+
+const onConnect = useCallback(
+    (params) => {
+      // log de depuración detallado
+      console.log(' PARAMS COMPLETOS:', {
+        source: params.source,
+        target: params.target,
+        sourceHandle: params.sourceHandle,
+        targetHandle: params.targetHandle,
+        sourceHandleType: params.sourceHandle?.includes('-in') ? 'ENTRADA' : 'SALIDA',
+        targetHandleType: params.targetHandle?.includes('-in') ? 'ENTRADA' : 'SALIDA'
+      });
+      
+      console.log(' onConnect ejecutado:', params);
+      
+      if (!isValidConnection(params)) {
+        console.log(' Conexión inválida, limpiando estado inmediatamente');
+        setConnectingNodeId(null);
+        return;
+      }
+
+      setEdges((eds) => addEdge({ 
+        ...params, 
+        animated: true,
+        markerEnd: { type: MarkerType.ArrowClosed }
+      }, eds));
+
+      showAlert('success', 'Conexión creada exitosamente');
+      
+      setTimeout(() => {
+        console.log('Limpiando estado después de conexión exitosa');
+        setConnectingNodeId(null);
+      }, 100);
+    },
+    [setEdges, isValidConnection, showAlert]
+);
 
   const addNode = useCallback((type, position, extraData = {}) => {
+    const nodeId = `node_${nodeIdRef.current}`;
+    
     const newNode = {
-      id: `node_${nodeIdRef.current}`,
+      id: nodeId,
       type: type || 'default',
       position,
       data: { 
-        label: extraData.deviceType === 'router' 
-          ? `Router ${nodeIdRef.current}` 
+        label: extraData.deviceType === 'switch' 
+          ? `switch ${nodeIdRef.current}` 
           : `Node ${nodeIdRef.current}`,
         ...extraData,
         createdAt: new Date().toLocaleString(),
+        connectingNodeId: connectingNodeId,
+        onUpdate: updateNodeData,
+        onDelete: deleteNode,
       },
     };
 
     nodeIdRef.current++;
     setNodes((nds) => [...nds, newNode]);
-    console.log('Nodo agregado:', newNode);
-  }, [setNodes]);
+    
+    setNewNodeModal({
+      isOpen: true,
+      nodeId: nodeId,
+      nodeData: newNode.data
+    });
+    
+  }, [setNodes, connectingNodeId, updateNodeData, deleteNode]);
+
+  const handleNewNodeSave = useCallback((updatedData) => {
+    console.log(' Guardando nodo:', updatedData);
+    if (newNodeModal.nodeId) {
+      updateNodeData(newNodeModal.nodeId, updatedData);
+      showAlert('success', `${updatedData.label} configurado correctamente`, 2000);
+    }
+
+    setNewNodeModal({ isOpen: false, nodeId: null, nodeData: null });
+  }, [newNodeModal.nodeId, updateNodeData, showAlert]);
+
+  const handleNewNodeCancel = useCallback(() => {
+    console.log(' Cancelando nodo:', newNodeModal.nodeId);
+    if (newNodeModal.nodeId) {
+      deleteNode(newNodeModal.nodeId);
+      showAlert('info', 'Nodo cancelado', 1500);
+    }
+    setNewNodeModal({ isOpen: false, nodeId: null, nodeData: null });
+  }, [newNodeModal.nodeId, deleteNode, showAlert]);
+
+  React.useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          connectingNodeId: connectingNodeId,
+          onUpdate: updateNodeData,
+          onDelete: deleteNode,
+        },
+      }))
+    );
+  }, [connectingNodeId]);
 
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
-
       const rawData = event.dataTransfer.getData('application/reactflow');
-      
       if (!rawData) return;
 
       let nodeType, extraData;
@@ -94,11 +351,6 @@ function App() {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const handleSave = () => {
-    console.log('Guardando flow...', { nodes, edges });
-    alert('Flow guardado! (Ver consola)');
-  };
-
   const handleExport = () => {
     const data = JSON.stringify({ nodes, edges }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
@@ -107,18 +359,53 @@ function App() {
     a.href = url;
     a.download = 'flow-export.json';
     a.click();
-    alert('Flow exportado como JSON!');
+    showAlert('success', '✓ Flow exportado como JSON', 2000);
   };
 
   const handleClear = () => {
     if (confirm('¿Seguro que quieres limpiar todo?')) {
       setNodes([]);
       setEdges([]);
+      showAlert('info', 'Canvas limpiado', 2000);
     }
   };
 
+  //  Indicador de carga
+  if (isLoadingDevices) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <svg className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="text-gray-600 text-lg font-medium">Cargando red...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-screen h-screen overflow-hidden">
+      {alert && (
+        <Alert
+          type={alert.type}
+          message={alert.message}
+          duration={alert.duration}
+          onClose={closeAlert}
+        />
+      )}
+
+      {newNodeModal.isOpen && (
+        <NodeEditModal
+          isOpen={newNodeModal.isOpen}
+          onClose={handleNewNodeCancel}  
+          nodeData={newNodeModal.nodeData}
+          onSave={handleNewNodeSave}  
+          isNewNode={true}
+        />
+      )}
+
       <div 
         ref={reactFlowWrapper}
         className="absolute inset-0 w-full h-full"
@@ -129,11 +416,14 @@ function App() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onConnectStart={onConnectStart}
+          onConnectEnd={onConnectEnd}
           onDrop={onDrop}
           onDragOver={onDragOver}
           nodeTypes={nodeTypes}
+          isValidConnection={isValidConnection}
           fitView
-          className='!bg-[#eeeeee]'
+          className='bg-[#eeeeee]!'
           connectionMode="loose"
         >
           <Background 
@@ -155,7 +445,6 @@ function App() {
       <Navbar 
         nodes={nodes}
         edges={edges}
-        onSave={handleSave}
         onExport={handleExport}
         onClear={handleClear}
         className="px-2.5 relative z-50"
@@ -171,10 +460,9 @@ function App() {
   );
 }
 
-
 export default function AppWrapper() {
   return (
-    <ReactFlowProvider>  {/* ← Usa ReactFlowProvider en lugar de ReactFlow */}
+    <ReactFlowProvider>
       <App />
     </ReactFlowProvider>
   );
