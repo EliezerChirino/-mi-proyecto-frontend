@@ -15,13 +15,15 @@ import '@xyflow/react/dist/style.css';
 
 import Navbar from './components/Layout/Navbar';
 import Sidebar from './components/Layout/Sidebar';
-import SwitchNode from './components/Nodes/SwitchNode';
+import GenericDeviceNode from './components/Nodes/GenericDeviceNode';
+import { DEVICE_TYPES } from './config/deviceTypes';
 import Alert from './components/UI/Alert';
 import NodeEditModal from './components/UI/NodeEditModal';
 
-const nodeTypes = {
-  switch: SwitchNode,
-};
+const nodeTypes = Object.values(DEVICE_TYPES).reduce((acc, device) => {
+    acc[device.nodeType] = GenericDeviceNode;
+    return acc;
+}, {});
 
 const initialNodes = [];
 const initialEdges = [];
