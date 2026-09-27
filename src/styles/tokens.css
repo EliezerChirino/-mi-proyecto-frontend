@@ -1,0 +1,89 @@
+/*
+ * tokens.css — Sistema de diseño "Admin Red" (Corimon, C.A.)
+ * Variables CSS puras, sin Tailwind. Se importa una sola vez en el
+ * punto de entrada de la app (src/index.jsx).
+ */
+
+:root {
+  /* Tipografía */
+  --font-sans: 'Archivo', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Neutros grafito (tinte cálido) */
+  --color-bg-0: oklch(0.165 0.004 40);   /* lienzo */
+  --color-bg-1: oklch(0.195 0.005 40);   /* sidebar, barra superior */
+  --color-bg-2: oklch(0.235 0.006 40);   /* nodo, tarjeta */
+  --color-bg-3: oklch(0.27 0.007 40);    /* hover, flotante */
+  --color-line: oklch(0.31 0.007 40);    /* borde base */
+  --color-line-2: oklch(0.4 0.008 40);   /* borde fuerte */
+  --color-text-1: oklch(0.95 0.005 80);  /* texto principal (hueso) */
+  --color-text-2: oklch(0.76 0.006 60);  /* texto secundario */
+  --color-text-3: oklch(0.62 0.008 50);  /* etiquetas, texto terciario */
+
+  /* Marca (solo marco de la app: logo, nav activa) */
+  --color-brand: oklch(0.56 0.2 30);
+  --color-brand-deep: oklch(0.4 0.15 25);
+
+  /* Interacción (selección, foco, conexión en curso) */
+  --color-steel: oklch(0.76 0.09 230);
+
+  /* Estado (nunca se mezcla con marca) */
+  --color-st-online: oklch(0.8 0.16 150);
+  --color-st-offline: oklch(0.7 0.19 10);
+  --color-st-offline-tint: oklch(0.7 0.19 10 / 0.12);
+  --color-st-maint: oklch(0.84 0.14 85);
+  --color-st-maint-tint: oklch(0.84 0.14 85 / 0.09);
+  --color-st-unknown: oklch(0.66 0.01 50);
+
+  /* Forma */
+  --radius-xs: 2px;   /* chips, teclas */
+  --radius-sm: 3px;   /* botones, inputs */
+  --radius-md: 4px;   /* nodos, paneles */
+
+  /* Profundidad (solo en elementos flotantes: menús, tooltips) */
+  --shadow-float: 0 8px 24px oklch(0 0 0 / 0.45);
+
+  /* Retícula del lienzo */
+  --canvas-dot-color: oklch(0.3 0.006 40);
+  --canvas-dot-size: 16px;
+}
+
+/* Reset mínimo, alcance de toda la app */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg-0);
+  color: var(--color-text-1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--color-steel);
+}
+a:hover {
+  color: oklch(0.86 0.07 230);
+}
+
+/* React Flow: retícula y aristas con los tokens del sistema */
+.react-flow {
+  --xy-background-pattern-dots-color-default: var(--color-line);
+}
+.react-flow__edge-path {
+  stroke: oklch(0.5 0.008 50);
+  stroke-width: 1.5;
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--color-steel);
+  stroke-width: 2;
+}
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--color-bg-0);
+  border: 1.5px solid var(--color-line-2);
+}

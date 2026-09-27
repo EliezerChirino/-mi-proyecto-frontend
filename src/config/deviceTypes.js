@@ -22,11 +22,11 @@
 //  CATEGORÍAS (grupos colapsables del Sidebar)
 // ═══════════════════════════════════════════════════════════════
 export const CATEGORIES = {
-    RED:         { id: 'red',         label: 'Red',         order: 1 },
-    ENDPOINTS:   { id: 'endpoints',   label: 'Endpoints',   order: 2 },
-    SEGURIDAD:   { id: 'seguridad',   label: 'Seguridad',   order: 3 },
-    PERIFERICOS: { id: 'perifericos', label: 'Periféricos', order: 4 },
-    SERVICIOS:   { id: 'servicios',   label: 'Servicios',   order: 5 },
+    RED:         { id: 'red',         label: 'Red',         code: 'NET', order: 1 },
+    ENDPOINTS:   { id: 'endpoints',   label: 'Endpoints',   code: 'END', order: 2 },
+    SEGURIDAD:   { id: 'seguridad',   label: 'Seguridad',   code: 'SEC', order: 3 },
+    PERIFERICOS: { id: 'perifericos', label: 'Periféricos', code: 'PER', order: 4 },
+    SERVICIOS:   { id: 'servicios',   label: 'Servicios',   code: 'SVC', order: 5 },
 };
 
 
@@ -162,7 +162,7 @@ export const DEVICE_TYPES = {
         color: '#3B82F6',
         bgLight: 'bg-blue-50',
         bgHover: 'hover:bg-blue-500',
-        iconSvg: `<path d="m15 20 3-3h2a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2l3 3z"/><path d="M6 8v1"/><path d="M10 8v1"/><path d="M14 8v1"/><path d="M18 8v1"/>`,
+        iconSvg: `<path d="M3 8h18v8H3z"/><path d="M6.5 11v2M9.5 11v2M12.5 11v2M15.5 11v2M18.5 12h.01"/>`,
         displayFields: {
             rows: ['ip', 'gateway', 'mac', 'dns'],      
             badges: ['vlan', 'puerto']                   
@@ -216,7 +216,7 @@ export const DEVICE_TYPES = {
         color: '#8B5CF6',
         bgLight: 'bg-purple-50',
         bgHover: 'hover:bg-purple-500',
-        iconSvg: `<rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6.01 18H6M10.01 18H10M15 10V6a3 3 0 0 0-3-3V3a3 3 0 0 0-3 3v4"/><path d="M18 10V6a6 6 0 0 0-12 0v4"/>`,
+        iconSvg: `<path d="M3 13h18v6H3z"/><path d="M7 13L5.5 6M17 13l1.5-7M7 16h.01M10 16h.01M14 16h4"/>`,
         displayFields: {
             rows: ['ip', 'gateway', 'wan_ip', 'mac'],
             badges: ['protocolo_ruteo']
@@ -252,6 +252,44 @@ export const DEVICE_TYPES = {
     },
 
     // ─────────────────────────────────────────────────────────
+    //  PUNTO DE ACCESO (Red)
+    // ─────────────────────────────────────────────────────────
+    ap: {
+        id: 'ap',
+        label: 'Punto de acceso',
+        categoria: CATEGORIES.RED.id,
+        nodeType: 'ap',
+        color: '#0EA5E9',
+        bgLight: 'bg-sky-50',
+        bgHover: 'hover:bg-sky-500',
+        iconSvg: `<path d="M12 13v6M8 19h8M8.5 9.5a5 5 0 0 1 7 0M5.5 6.5a9 9 0 0 1 13 0M12 13h.01"/>`,
+        displayFields: {
+            rows: ['ip', 'mac'],
+            badges: ['ssid', 'canal']
+        },
+        specificFields: [
+            {
+                key: 'ssid',
+                label: 'SSID',
+                type: 'text',
+                section: 'red',
+                required: false,
+                placeholder: 'ej: Corimon-Staff',
+                colSpan: 1
+            },
+            {
+                key: 'canal',
+                label: 'Canal',
+                type: 'text',
+                section: 'red',
+                required: false,
+                placeholder: 'ej: 36 (5GHz)',
+                colSpan: 1
+            },
+        ],
+    },
+
+    // ─────────────────────────────────────────────────────────
     //  PC (Endpoints)
     // ─────────────────────────────────────────────────────────
     pc: {
@@ -262,7 +300,7 @@ export const DEVICE_TYPES = {
         color: '#10B981',
         bgLight: 'bg-emerald-50',
         bgHover: 'hover:bg-emerald-500',
-        iconSvg: `<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>`,
+        iconSvg: `<path d="M3 4h18v12H3z"/><path d="M8 20h8M12 16v4"/>`,
         displayFields: {
             rows: ['ip', 'mac', 'usuario'],
             badges: ['sistema_operativo']
@@ -297,6 +335,42 @@ export const DEVICE_TYPES = {
     },
 
     // ─────────────────────────────────────────────────────────
+    //  LAPTOP (Endpoints)
+    // ─────────────────────────────────────────────────────────
+    laptop: {
+        id: 'laptop',
+        label: 'Laptop',
+        categoria: CATEGORIES.ENDPOINTS.id,
+        nodeType: 'laptop',
+        color: '#22C55E',
+        bgLight: 'bg-green-50',
+        bgHover: 'hover:bg-green-500',
+        iconSvg: `<path d="M5 5h14v10H5z"/><path d="M2 19h20l-2-4H4z"/>`,
+        displayFields: {
+            rows: ['ip', 'mac', 'usuario'],
+            badges: ['sistema_operativo']
+        },
+        specificFields: [
+            {
+                key: 'sistema_operativo',
+                label: 'Sistema Operativo',
+                type: 'select',
+                section: 'adicional',
+                required: false,
+                options: ['Windows 11', 'Windows 10', 'Ubuntu', 'macOS', 'Otro']
+            },
+            {
+                key: 'usuario',
+                label: 'Usuario asignado',
+                type: 'text',
+                section: 'adicional',
+                required: false,
+                placeholder: 'ej: juan.perez'
+            },
+        ],
+    },
+
+    // ─────────────────────────────────────────────────────────
     //  SERVIDOR (Endpoints)
     // ─────────────────────────────────────────────────────────
     servidor: {
@@ -307,7 +381,7 @@ export const DEVICE_TYPES = {
         color: '#F59E0B',
         bgLight: 'bg-amber-50',
         bgHover: 'hover:bg-amber-500',
-        iconSvg: `<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>`,
+        iconSvg: `<path d="M3 4h18v7H3z"/><path d="M3 13h18v7H3z"/><path d="M6.5 7.5h.01M6.5 16.5h.01M10 7.5h8M10 16.5h8"/>`,
         displayFields: {
             rows: ['ip', 'gateway', 'mac'],
             badges: ['rol', 'sistema_operativo']
@@ -343,15 +417,15 @@ export const DEVICE_TYPES = {
     // ─────────────────────────────────────────────────────────
     //  CÁMARA IP (Seguridad)
     // ─────────────────────────────────────────────────────────
-    camara_ip: {
-        id: 'camara_ip',
+    camara: {
+        id: 'camara',
         label: 'Cámara IP',
         categoria: CATEGORIES.SEGURIDAD.id,
-        nodeType: 'camara_ip',
+        nodeType: 'camara',
         color: '#EF4444',
         bgLight: 'bg-red-50',
         bgHover: 'hover:bg-red-500',
-        iconSvg: `<path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>`,
+        iconSvg: `<path d="M3 7h13v8H3z"/><path d="M16 10l5-2v6l-5-2M7 15l-2 5M6.5 11h.01"/>`,
         displayFields: {
             rows: ['ip', 'modelo'],
             badges: ['resolucion']
@@ -387,7 +461,7 @@ export const DEVICE_TYPES = {
         color: '#DC2626',
         bgLight: 'bg-red-100',
         bgHover: 'hover:bg-red-600',
-        iconSvg: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
+        iconSvg: `<path d="M3 5h18v14H3z"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 9.7v4.6M9 14.3V19"/>`,
         displayFields: {
             rows: ['ip', 'gateway', 'modelo'],
             badges: []
@@ -415,15 +489,15 @@ export const DEVICE_TYPES = {
     // ─────────────────────────────────────────────────────────
     //  TELÉFONO IP (Periféricos)
     // ─────────────────────────────────────────────────────────
-    telefono_ip: {
-        id: 'telefono_ip',
+    telefono: {
+        id: 'telefono',
         label: 'Teléfono IP',
         categoria: CATEGORIES.PERIFERICOS.id,
-        nodeType: 'telefono_ip',
+        nodeType: 'telefono',
         color: '#06B6D4',
         bgLight: 'bg-cyan-50',
         bgHover: 'hover:bg-cyan-500',
-        iconSvg: `<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>`,
+        iconSvg: `<path d="M6 3h12v18H6z"/><path d="M9 6h6v4H9zM9 13h.01M12 13h.01M15 13h.01M9 16h.01M12 16h.01M15 16h.01"/>`,
         displayFields: {
             rows: ['ip', 'modelo'],
             badges: ['extension']
@@ -461,7 +535,7 @@ export const DEVICE_TYPES = {
         color: '#EC4899',
         bgLight: 'bg-pink-50',
         bgHover: 'hover:bg-pink-500',
-        iconSvg: `<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>`,
+        iconSvg: `<path d="M6 3h12v18H6z"/><path d="M9 7h6M9 10h6M9 13h6M12 17.5h.01"/>`,
         displayFields: {
             rows: ['ip'],
             badges: ['capacidad', 'raid']
@@ -489,17 +563,45 @@ export const DEVICE_TYPES = {
     },
 
     // ─────────────────────────────────────────────────────────
+    //  IMPRESORA (Periféricos)
+    // ─────────────────────────────────────────────────────────
+    impresora: {
+        id: 'impresora',
+        label: 'Impresora',
+        categoria: CATEGORIES.PERIFERICOS.id,
+        nodeType: 'impresora',
+        color: '#F97316',
+        bgLight: 'bg-orange-50',
+        bgHover: 'hover:bg-orange-500',
+        iconSvg: `<path d="M7 3h10v5H7z"/><path d="M3 8h18v9H3z"/><path d="M7 14h10v7H7z"/><path d="M17 11h.01"/>`,
+        displayFields: {
+            rows: ['ip'],
+            badges: ['modelo']
+        },
+        specificFields: [
+            {
+                key: 'modelo',
+                label: 'Modelo',
+                type: 'text',
+                section: 'adicional',
+                required: false,
+                placeholder: 'ej: HP LaserJet M404'
+            },
+        ],
+    },
+
+    // ─────────────────────────────────────────────────────────
     //  APP WEB (Servicios)
     // ─────────────────────────────────────────────────────────
-    app_web: {
-        id: 'app_web',
+    web: {
+        id: 'web',
         label: 'App Web',
         categoria: CATEGORIES.SERVICIOS.id,
-        nodeType: 'app_web',
+        nodeType: 'web',
         color: '#6366F1',
         bgLight: 'bg-indigo-50',
         bgHover: 'hover:bg-indigo-500',
-        iconSvg: `<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>`,
+        iconSvg: `<path d="M3 4h18v16H3z"/><path d="M3 8h18M6 6h.01M8.5 6h.01M9 12l-2 2 2 2M15 12l2 2-2 2M13 11l-2 6"/>`,
         displayFields: {
             rows: ['url', 'stack'],
             badges: ['puerto']
@@ -555,6 +657,7 @@ export const getDevicesByCategory = () => {
         .forEach(cat => {
             grouped[cat.id] = {
                 label: cat.label,
+                code: cat.code,
                 devices: []
             };
         });

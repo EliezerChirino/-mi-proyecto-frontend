@@ -1,0 +1,294 @@
+/* Sidebar.css — paleta de dispositivos, identidad "Admin Red" */
+
+.sidebar {
+    height: 100%;
+    flex: none;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-1);
+    border-right: 1px solid var(--color-line);
+    color: var(--color-text-1);
+    position: relative;
+    transition: width 0.2s ease-in-out;
+    overflow: hidden;
+}
+
+.sidebar--expanded {
+    width: 264px;
+}
+
+.sidebar--collapsed {
+    width: 56px;
+    align-items: center;
+}
+
+/* ─── Cabecera ─── */
+
+.sidebar__header {
+    height: 56px;
+    flex: none;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px 0 14px;
+    border-bottom: 1px solid var(--color-line);
+    box-sizing: border-box;
+}
+
+.sidebar--collapsed .sidebar__header {
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 0;
+    height: auto;
+    min-height: 56px;
+}
+
+.sidebar__logo {
+    width: 30px;
+    height: auto;
+    flex: none;
+    object-fit: contain;
+}
+
+.sidebar__brand {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar__brand-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar__brand-sub {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.06em;
+    color: var(--color-text-3);
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar__toggle {
+    width: 28px;
+    height: 28px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-2);
+    cursor: pointer;
+}
+
+.sidebar__toggle:hover {
+    background: var(--color-bg-3);
+}
+
+/* ─── Lista de categorías ─── */
+
+.sidebar__groups {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sidebar--collapsed .sidebar__groups {
+    align-items: center;
+    padding-bottom: 10px;
+}
+
+.sidebar__group-header {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 6px;
+    background: transparent;
+    border: none;
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+}
+
+.sidebar__group-code {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--color-text-3);
+    width: 26px;
+    flex: none;
+    text-align: left;
+}
+
+.sidebar--collapsed .sidebar__group-code {
+    width: auto;
+    margin: 8px 0 3px;
+    font-size: 8.5px;
+}
+
+.sidebar__group-name {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-2);
+    text-align: left;
+}
+
+.sidebar__group-chevron {
+    flex: none;
+    transition: transform 0.2s ease-in-out;
+    color: var(--color-text-3);
+}
+
+.sidebar__group-chevron--closed {
+    transform: rotate(-90deg);
+}
+
+.sidebar__group-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.sidebar--collapsed .sidebar__group-items {
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+}
+
+/* ─── Fila de dispositivo (expandida) ─── */
+
+.sidebar__item {
+    height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 8px 0 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    cursor: grab;
+    background: none;
+    box-sizing: border-box;
+}
+
+.sidebar__item:hover {
+    background: var(--color-bg-3);
+    border-color: var(--color-line-2);
+}
+
+.sidebar__item-handle {
+    flex: none;
+    color: var(--color-text-3);
+}
+
+.sidebar__item-icon {
+    width: 26px;
+    height: 26px;
+    flex: none;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-line);
+    background: var(--color-bg-2);
+    border-radius: var(--radius-sm);
+}
+
+.sidebar__item-label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--color-text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+}
+
+/* ─── Dispositivo en modo compacto (solo ícono) ─── */
+
+.sidebar__item--compact {
+    width: 38px;
+    height: 36px;
+    justify-content: center;
+    padding: 0;
+}
+
+/* ─── Buscador ─── */
+
+.sidebar__search {
+    padding: 12px 12px 6px;
+    flex: none;
+}
+
+.sidebar__search-box {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px 0 10px;
+    border: 1px solid var(--color-line);
+    background: var(--color-bg-0);
+    border-radius: var(--radius-sm);
+    box-sizing: border-box;
+}
+
+.sidebar__search-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    color: var(--color-text-1);
+}
+
+.sidebar__search-input::placeholder {
+    color: var(--color-text-3);
+}
+
+.sidebar__search-kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-text-3);
+    border: 1px solid var(--color-line-2);
+    border-radius: var(--radius-xs);
+    padding: 1px 5px;
+}
+
+/* ─── Pie ─── */
+
+.sidebar__footer {
+    flex: none;
+    padding: 10px 14px;
+    border-top: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--color-text-3);
+}

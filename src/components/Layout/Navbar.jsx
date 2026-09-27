@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { generateFlowDataForDB } from '../../utils/connectionUtils';
 import Alert from '../UI/Alert';
+import './Navbar.css';
 
 const Navbar = ({ nodes = [], edges = [] }) => {
     const [isLoading, setIsLoading] = useState(false);
@@ -182,79 +183,69 @@ const Navbar = ({ nodes = [], edges = [] }) => {
 
     return (
         <>
-        <nav className="fixed left-0 right-0 w-full h-[60px] top-3 z-50">
-            <div className="h-full px-6 flex items-center w-full justify-end gap-3">
-                
-                {/* Botón Ver Objetos */}
-                <button
-                    onClick={handleShowNodes}
-                    className="backdrop-blur-md bg-blue-500/90 hover:bg-blue-600/90 text-white border border-blue-400/30 rounded-2xl shadow-custom px-4 py-2 transition-all flex items-center gap-2"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="4 17 10 11 4 5"/>
-                        <line x1="12" y1="19" x2="20" y2="19"/>
+        <nav className="navbar">
+            {/* Pestaña activa: Mapa */}
+            <div className="navbar__tab navbar__tab--active">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square">
+                    <path d="M5 5h4v4H5z M15 5h4v4h-4z M10 15h4v4h-4z M7 9v3h10V9 M12 12v3" />
+                </svg>
+                Mapa
+            </div>
+
+            {/* Botón Ver Objetos (inventario) */}
+            <button type="button" onClick={handleShowNodes} className="navbar__tab">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square">
+                    <path d="M4 6h16 M4 12h16 M4 18h16" />
+                </svg>
+                Ver dispositivos
+                <span className="navbar__count">{nodes.length}</span>
+            </button>
+
+            <div className="navbar__spacer" />
+
+            {/* Estado sin guardar / último resultado */}
+            {lastResponse && (
+                <div className="navbar__summary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+                        <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    Ver Objetos ({nodes.length})
-                </button>
-
-                {/* Botón Guardar Red */}
-                <button
-                    onClick={handleSaveDevices}
-                    disabled={isLoading || nodes.length === 0}
-                    className={`backdrop-blur-md border rounded-2xl shadow-custom px-4 py-2 transition-all flex items-center gap-2 ${
-                        isLoading 
-                            ? 'bg-gray-400/90 border-gray-300/30 text-white cursor-not-allowed'
-                            : nodes.length === 0
-                                ? 'bg-gray-300/90 border-gray-200/30 text-gray-500 cursor-not-allowed'
-                                : 'bg-green-500/90 hover:bg-green-600/90 border-green-400/30 text-white'
-                    }`}
-                >
-                    {isLoading ? (
-                        <>
-                            <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="12" y1="2" x2="12" y2="6"/>
-                                <line x1="12" y1="18" x2="12" y2="22"/>
-                                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
-                                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
-                                <line x1="2" y1="12" x2="6" y2="12"/>
-                                <line x1="18" y1="12" x2="22" y2="12"/>
-                                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
-                                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
-                            </svg>
-                            Guardando...
-                        </>
-                    ) : (
-                        <>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                                <polyline points="17 21 17 13 7 13 7 21"/>
-                                <polyline points="7 3 7 8 15 8"/>
-                            </svg>
-                            Guardar Red ({nodes.length})
-                        </>
-                    )}
-                </button>
-
-                {/* Indicador de último guardado */}
-                {lastResponse && (
-                    <div className="backdrop-blur-md bg-green-500/90 border border-green-400/30 rounded-2xl shadow-custom px-3 py-2 text-white text-xs flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        {lastResponse.statistics?.created || lastResponse.created} creados
-                        {lastResponse.statistics?.connections_created > 0 && 
-                            ` • ${lastResponse.statistics.connections_created} conexiones`
-                        }
-                    </div>
-                )}
-
-                {/* Usuario */}
-                <div className="flex items-center gap-4 backdrop-blur-md bg-white/80 border border-white/20 max-w-[150px] rounded-2xl shadow-custom p-4">
-                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                        <span>👤</span>
-                        Usuario
-                    </span>
+                    {lastResponse.statistics?.created || lastResponse.created} creados
+                    {lastResponse.statistics?.connections_created > 0 &&
+                        ` · ${lastResponse.statistics.connections_created} conexiones`
+                    }
                 </div>
+            )}
+
+            {/* Botón Guardar Red */}
+            <button
+                type="button"
+                onClick={handleSaveDevices}
+                disabled={isLoading || nodes.length === 0}
+                className="navbar__save"
+            >
+                {isLoading ? (
+                    <>
+                        <svg className="navbar__save-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square">
+                            <path d="M12 3a9 9 0 1 0 9 9" />
+                        </svg>
+                        Guardando...
+                    </>
+                ) : (
+                    <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square">
+                            <path d="M4 4h13l3 3v13H4z M8 4v5h7V4 M8 14h8v6H8z" />
+                        </svg>
+                        Guardar red ({nodes.length})
+                    </>
+                )}
+            </button>
+
+            <div className="navbar__divider" />
+
+            {/* Usuario */}
+            <div className="navbar__user">
+                <span className="navbar__user-avatar">TI</span>
+                <span className="navbar__user-name">Usuario</span>
             </div>
         </nav>
         {alert && (

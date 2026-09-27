@@ -12,6 +12,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import './App.css';
 
 import Navbar from './components/Layout/Navbar';
 import Sidebar from './components/Layout/Sidebar';
@@ -388,7 +389,7 @@ const onConnect = useCallback(
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden">
+    <div className="app-shell">
       {alert && (
         <Alert
           type={alert.type}
@@ -401,63 +402,63 @@ const onConnect = useCallback(
       {newNodeModal.isOpen && (
         <NodeEditModal
           isOpen={newNodeModal.isOpen}
-          onClose={handleNewNodeCancel}  
+          onClose={handleNewNodeCancel}
           nodeData={newNodeModal.nodeData}
-          onSave={handleNewNodeSave}  
+          onSave={handleNewNodeSave}
           isNewNode={true}
         />
       )}
 
-      <div 
-        ref={reactFlowWrapper}
-        className="absolute inset-0 w-full h-full"
-      >
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onConnectStart={onConnectStart}
-          onConnectEnd={onConnectEnd}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          nodeTypes={nodeTypes}
-          isValidConnection={isValidConnection}
-          fitView
-          className='bg-[#eeeeee]!'
-          connectionMode="loose"
-        >
-          <Background 
-            color="#333" 
-            gap={16}
-            variant="dots"
-          />
-          <Controls 
-            className="bg-white shadow-lg rounded-lg border border-gray-200"
-          />
-          <MiniMap 
-            className="bg-white shadow-lg rounded-lg border border-gray-200"
-            nodeColor="#6366f1"
-            maskColor="rgba(0,0,0,0.1)"
-          />
-        </ReactFlow>
-      </div>
-
-      <Navbar 
-        nodes={nodes}
-        edges={edges}
-        onExport={handleExport}
-        onClear={handleClear}
-        className="px-2.5 relative z-50"
-      />
-
-      <Sidebar 
+      <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onAddNode={addNode}
-        className="relative z-40"
       />
+
+      <div className="app-shell__main">
+        <Navbar
+          nodes={nodes}
+          edges={edges}
+          onExport={handleExport}
+          onClear={handleClear}
+        />
+
+        <div
+          ref={reactFlowWrapper}
+          className="app-shell__canvas"
+        >
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onConnectStart={onConnectStart}
+            onConnectEnd={onConnectEnd}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            nodeTypes={nodeTypes}
+            isValidConnection={isValidConnection}
+            fitView
+            style={{ background: 'var(--color-bg-0)' }}
+            connectionMode="loose"
+          >
+            <Background
+              color="var(--canvas-dot-color)"
+              gap={16}
+              variant="dots"
+            />
+            <Controls
+              className="bg-white shadow-lg rounded-lg border border-gray-200"
+            />
+            <MiniMap
+              className="bg-white shadow-lg rounded-lg border border-gray-200"
+              nodeColor="#6366f1"
+              maskColor="rgba(0,0,0,0.1)"
+            />
+          </ReactFlow>
+        </div>
+      </div>
     </div>
   );
 }

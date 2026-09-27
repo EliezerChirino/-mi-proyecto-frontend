@@ -1,94 +1,123 @@
 // src/components/Layout/Sidebar.jsx
 import React, { useState } from 'react';
 import Corimon_logo from '../../assets/Corimon_logo.png';
-import { 
-    getDevicesByCategory, 
-    getInitialDataForDevice 
+import { cx } from '../../utils/cx';
+import {
+    getDevicesByCategory,
+    getInitialDataForDevice
 } from '../../config/deviceTypes';
+import './Sidebar.css';
 
-
-const DeviceIcon = ({ svgPath, className = "" }) => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="22" height="22" 
-        viewBox="0 0 24 24" 
-        fill="none" stroke="currentColor" 
-        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        className={className}
+// ─── Ícono de dispositivo: trazo cuadrado, sin relleno (identidad Admin Red) ───
+const DeviceIcon = ({ svgPath, size = 16 }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size} height={size}
+        viewBox="0 0 24 24"
+        fill="none" stroke="currentColor"
+        strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter"
         dangerouslySetInnerHTML={{ __html: svgPath }}
     />
 );
 
-// ─── Componente interno: botón individual de dispositivo ───────
-const DeviceButton = ({ device, isOpen, onDragStart, onClick }) => {
+// ─── Asa de arrastre (6 puntos) ───
+const DragHandle = () => (
+    <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
+        <rect x="0" y="1" width="2" height="2" />
+        <rect x="5" y="1" width="2" height="2" />
+        <rect x="0" y="6" width="2" height="2" />
+        <rect x="5" y="6" width="2" height="2" />
+        <rect x="0" y="11" width="2" height="2" />
+        <rect x="5" y="11" width="2" height="2" />
+    </svg>
+);
+
+// ─── Fila de dispositivo, expandida o compacta ───
+const DeviceRow = ({ device, isSidebarOpen, onDragStart, onClick }) => {
     const initialData = getInitialDataForDevice(device.id);
-    
+
+    if (!isSidebarOpen) {
+        return (
+            <div
+                className="sidebar__item sidebar__item--compact"
+                draggable
+                onDragStart={(e) => onDragStart(e, device.nodeType, initialData)}
+                onClick={() => onClick(device.nodeType, initialData)}
+                title={device.label}
+            >
+                <DeviceIcon svgPath={device.iconSvg} size={18} />
+            </div>
+        );
+    }
+
     return (
         <div
+            className="sidebar__item"
             draggable
             onDragStart={(e) => onDragStart(e, device.nodeType, initialData)}
             onClick={() => onClick(device.nodeType, initialData)}
-            className={`flex items-center text-[#333] gap-2 p-2 
-                       hover:text-white ${device.bgLight} ${device.bgHover}
-                       rounded-xl cursor-pointer transition-all duration-200
-                       ${isOpen ? 'justify-start px-3' : 'justify-center'}`}
-            title={!isOpen ? device.label : ''}
+            title="Arrastrar al lienzo"
         >
-            <DeviceIcon svgPath={device.iconSvg} />
-            {isOpen && <span className="text-sm font-medium">{device.label}</span>}
+            <span className="sidebar__item-handle"><DragHandle /></span>
+            <span className="sidebar__item-icon">
+                <DeviceIcon svgPath={device.iconSvg} />
+            </span>
+            <span className="sidebar__item-label">{device.label}</span>
         </div>
     );
 };
 
-// ─── Componente interno: sección colapsable por categoría ──────
-const CategorySection = ({ title, devices, isOpen, isSidebarOpen, onToggle, onDragStart, onClick }) => {
+// ─── Sección colapsable por categoría ───
+const CategorySection = ({ code, title, devices, isOpen, isSidebarOpen, onToggle, onDragStart, onClick }) => {
+    if (!isSidebarOpen) {
+        return (
+            <div className="sidebar__group-items">
+                <span className="sidebar__group-code">{code}</span>
+                {devices.map(device => (
+                    <DeviceRow
+                        key={device.id}
+                        device={device}
+                        isSidebarOpen={false}
+                        onDragStart={onDragStart}
+                        onClick={onClick}
+                    />
+                ))}
+            </div>
+        );
+    }
+
     return (
-        <div className="mb-3">
-            {isSidebarOpen && (
-                <button
-                    onClick={onToggle}
-                    className="w-full flex items-center justify-between px-1 py-1.5 
-                              text-[#333] hover:text-blue-600 transition-colors group"
+        <div>
+            <button type="button" className="sidebar__group-header" onClick={onToggle}>
+                <span className="sidebar__group-code">{code}</span>
+                <span className="sidebar__group-name">{title}</span>
+                <svg
+                    className={cx('sidebar__group-chevron', !isOpen && 'sidebar__group-chevron--closed')}
+                    width="12" height="12" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square"
                 >
-                    <span className="text-xs font-bold uppercase tracking-wider">
-                        {title}
-                    </span>
-                    <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        width="16" height="16" 
-                        viewBox="0 0 24 24" fill="none" 
-                        stroke="currentColor" strokeWidth="2.5" 
-                        strokeLinecap="round" strokeLinejoin="round"
-                        className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                    >
-                        <polyline points="6 9 12 15 18 9"/>
-                    </svg>
-                </button>
-            )}
-            
-            <div 
-                className={`overflow-hidden transition-all duration-300 ease-in-out
-                           ${isOpen || !isSidebarOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
-            >
-                <div className="space-y-1.5 mt-1">
+                    <path d="M6 9l6 6 6-6" />
+                </svg>
+            </button>
+            {isOpen && (
+                <div className="sidebar__group-items">
                     {devices.map(device => (
-                        <DeviceButton
+                        <DeviceRow
                             key={device.id}
                             device={device}
-                            isOpen={isSidebarOpen}
+                            isSidebarOpen
                             onDragStart={onDragStart}
                             onClick={onClick}
                         />
                     ))}
                 </div>
-            </div>
+            )}
         </div>
     );
 };
 
-// ─── Componente principal: Sidebar ─────────────────────────────
+// ─── Componente principal: Sidebar ───
 const Sidebar = ({ isOpen, onToggle, onAddNode }) => {
-    // Estado de qué categorías están expandidas (todas por defecto)
     const categoriesData = getDevicesByCategory();
     const [expandedCategories, setExpandedCategories] = useState(
         Object.keys(categoriesData).reduce((acc, catId) => {
@@ -116,69 +145,43 @@ const Sidebar = ({ isOpen, onToggle, onAddNode }) => {
     };
 
     return (
-        <>
-            {/* Botón toggle sidebar */}
-            <button 
-                onClick={onToggle} 
-                className="fixed top-[29%] z-20 bg-white p-2 rounded-full shadow-md transform -translate-y-1/2 cursor-pointer"
-                style={{ 
-                    left: isOpen ? '240px' : '110px', 
-                    transition: 'left 0.3s ease-in-out' 
-                }}
-            >
-                {isOpen ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="m15 18-6-6 6-6"/>
-                    </svg>
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="m9 18 6-6-6-6"/>
-                    </svg>
-                )}
-            </button>
-
-            <aside 
-                className={`fixed bg-white text-white z-10 transition-all duration-300 ease-in-out h-full shadow-custom
-                           overflow-y-auto
-                           ${isOpen ? 'w-64 p-4' : 'w-32 p-3'}`}
-            >
-                {/* Logo */}
-                <div className="flex items-center gap-6 mb-6">
-                    <div id="logo" className="flex-col w-full rounded-[26px] items-center cursor-pointer">
-                        <div className={`flex gap-2 text-[#333] ${isOpen ? 'justify-start' : 'justify-center'}`}>
-                            <div className="w-[68px] shrink-0">
-                                <img src={Corimon_logo} alt="Logo de Corimon" className="w-full h-auto object-contain" />
-                            </div>
-                            <div className="flex descripcion items-end">
-                                <h3 className={`font-semibold text-[16px] ${isOpen ? 'block' : 'hidden'}`}>
-                                    Corimon, C.A.
-                                </h3>
-                            </div>
-                        </div>
-                        <hr className="border-t border-blue-950 crm w-full my-1" />
-                        <h4 className={`text-[#333] descripcion tracking-[2px] text-[13px] ${isOpen ? 'block' : 'hidden'}`}>
-                            y sus empresas filiales
-                        </h4>
-                    </div>
-                </div>
-
-                {/* Título de sección */}
+        <aside className={cx('sidebar', isOpen ? 'sidebar--expanded' : 'sidebar--collapsed')}>
+            <div className="sidebar__header">
+                <img src={Corimon_logo} alt="Logo de Corimon" className="sidebar__logo" />
                 {isOpen && (
-                    <div className="mb-4 pb-2 border-b border-gray-200">
-                        <h3 className="text-[#333] font-semibold text-sm">
-                            Agregar Nodos
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                            Arrastra o haz clic
-                        </p>
+                    <div className="sidebar__brand">
+                        <span className="sidebar__brand-name">Admin Red</span>
+                        <span className="sidebar__brand-sub">Corimon, C.A.</span>
+                    </div>
+                )}
+                <button
+                    type="button"
+                    onClick={onToggle}
+                    className="sidebar__toggle"
+                    title={isOpen ? 'Colapsar' : 'Expandir'}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square">
+                        <path d={isOpen ? 'M4 4v16 M15 6l-6 6 6 6' : 'M20 4v16 M9 6l6 6-6 6'} />
+                    </svg>
+                </button>
+            </div>
+
+                {isOpen && (
+                    <div className="sidebar__search">
+                        <div className="sidebar__search-box">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square" style={{ color: 'var(--color-text-3)', flex: 'none' }}>
+                                <path d="M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13z M15.5 15.5L20 20" />
+                            </svg>
+                            <span className="sidebar__search-input" style={{ color: 'var(--color-text-3)' }}>Buscar dispositivo</span>
+                        </div>
                     </div>
                 )}
 
-                {/* Categorías dinámicas */}
-                <div className="space-y-2 pb-20">
+                <div className="sidebar__groups">
                     {Object.entries(categoriesData).map(([catId, catData]) => (
                         <CategorySection
                             key={catId}
+                            code={catData.code}
                             title={catData.label}
                             devices={catData.devices}
                             isOpen={expandedCategories[catId]}
@@ -189,8 +192,13 @@ const Sidebar = ({ isOpen, onToggle, onAddNode }) => {
                         />
                     ))}
                 </div>
-            </aside>
-        </>
+
+            {isOpen && (
+                <div className="sidebar__footer">
+                    Arrastra al lienzo o haz clic para agregar
+                </div>
+            )}
+        </aside>
     );
 };
 
