@@ -19,3 +19,73 @@
     min-height: 0;
     position: relative;
 }
+
+
+/* ─── Controles y minimapa de React Flow con tokens Admin Red ─── */
+
+.app-shell__canvas .react-flow {
+    --xy-controls-button-background-color: var(--color-bg-1);
+    --xy-controls-button-background-color-hover: var(--color-bg-3);
+    --xy-controls-button-color: var(--color-text-2);
+    --xy-controls-button-color-hover: var(--color-text-1);
+    --xy-controls-button-border-color: var(--color-line);
+    --xy-controls-box-shadow: none;
+
+    --xy-minimap-background-color: var(--color-bg-1);
+    --xy-minimap-mask-background-color: color-mix(in oklab, var(--color-bg-0) 70%, transparent);
+    --xy-minimap-mask-stroke-color: var(--color-steel);
+    --xy-minimap-node-stroke-color: transparent;
+
+    --xy-attribution-background-color: transparent;
+}
+
+.app-shell__canvas .react-flow__controls {
+    border: 1px solid var(--color-line-2);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.app-shell__canvas .react-flow__controls-button {
+    width: 32px;
+    height: 30px;
+}
+
+.app-shell__canvas .react-flow__minimap {
+    border: 1px solid var(--color-line-2);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.app-shell__canvas .react-flow__attribution a {
+    color: var(--color-text-3);
+}
+
+.app-shell__canvas--with-panel .react-flow__minimap {
+    margin-right: 367px;
+}
+
+/* ─── Pantalla de carga inicial ─── */
+
+.app-loading {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--color-bg-0);
+    color: var(--color-text-2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.app-loading__spinner {
+    color: var(--color-steel);
+    animation: app-spin 0.8s linear infinite;
+}
+
+@keyframes app-spin {
+    to { transform: rotate(360deg); }
+}

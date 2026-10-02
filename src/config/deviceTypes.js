@@ -1,15 +1,7 @@
 // src/config/deviceTypes.js
 
 /**
- * ═══════════════════════════════════════════════════════════════
- * CONFIGURACIÓN CENTRAL DE TIPOS DE DISPOSITIVOS
- * ═══════════════════════════════════════════════════════════════
- * 
- * Fuente ÚNICA de verdad para:
- *   - Sidebar (qué botones mostrar y en qué categoría)
- *   - Canvas (color e ícono de cada nodo)
- *   - Modal de edición (qué campos mostrar y cómo validarlos)
- * 
+
  * Para agregar un dispositivo nuevo:
  *   1. Agrega un objeto en DEVICE_TYPES con un id único
  *   2. Define su categoría, color e ícono
@@ -173,7 +165,7 @@ export const DEVICE_TYPES = {
                 label: 'Gateway',
                 type: 'text',
                 section: 'red',
-                required: true,
+                required: false,
                 validator: 'ip',
                 placeholder: 'ej: 192.168.1.254'
             },
@@ -182,7 +174,7 @@ export const DEVICE_TYPES = {
                 label: 'VLAN',
                 type: 'text',
                 section: 'red',
-                required: true,
+                required: false,
                 placeholder: 'ej: 100',
                 colSpan: 1
             },
@@ -227,7 +219,7 @@ export const DEVICE_TYPES = {
                 label: 'Gateway',
                 type: 'text',
                 section: 'red',
-                required: true,
+                required: false,
                 validator: 'ip',
                 placeholder: 'ej: 192.168.1.254'
             },
@@ -472,7 +464,7 @@ export const DEVICE_TYPES = {
                 label: 'Gateway',
                 type: 'text',
                 section: 'red',
-                required: true,
+                required: false,
                 validator: 'ip'
             },
             {
@@ -524,44 +516,7 @@ export const DEVICE_TYPES = {
         ],
     },
 
-    // ─────────────────────────────────────────────────────────
-    //  NAS (Servicios)
-    // ─────────────────────────────────────────────────────────
-    nas: {
-        id: 'nas',
-        label: 'NAS',
-        categoria: CATEGORIES.SERVICIOS.id,
-        nodeType: 'nas',
-        color: '#EC4899',
-        bgLight: 'bg-pink-50',
-        bgHover: 'hover:bg-pink-500',
-        iconSvg: `<path d="M6 3h12v18H6z"/><path d="M9 7h6M9 10h6M9 13h6M12 17.5h.01"/>`,
-        displayFields: {
-            rows: ['ip'],
-            badges: ['capacidad', 'raid']
-        },
-        specificFields: [
-            {
-                key: 'capacidad',
-                label: 'Capacidad total',
-                type: 'text',
-                section: 'adicional',
-                required: false,
-                placeholder: 'ej: 4 TB',
-                colSpan: 1
-            },
-            {
-                key: 'raid',
-                label: 'Configuración RAID',
-                type: 'select',
-                section: 'adicional',
-                required: false,
-                options: ['RAID 0', 'RAID 1', 'RAID 5', 'RAID 6', 'RAID 10', 'JBOD'],
-                colSpan: 1
-            },
-        ],
-    },
-
+    
     // ─────────────────────────────────────────────────────────
     //  IMPRESORA (Periféricos)
     // ─────────────────────────────────────────────────────────
@@ -645,8 +600,6 @@ export const DEVICE_TYPES = {
 /**
  * Devuelve los dispositivos agrupados por categoría.
  * Lo usa el Sidebar para renderizar las secciones colapsables.
- * 
- * @returns {Object} { red: { label, devices: [] }, endpoints: {...}, ... }
  */
 export const getDevicesByCategory = () => {
     const grouped = {};
@@ -672,11 +625,12 @@ export const getDevicesByCategory = () => {
     return grouped;
 };
 
+export const getCategoryCode = (categoriaId) => {
+    const category = Object.values(CATEGORIES).find(c => c.id === categoriaId);
+    return category ? category.code : '';
+};
 /**
  * Devuelve TODOS los campos (comunes + específicos) de un dispositivo.
- * 
- * @param {string} deviceId - id del dispositivo (ej: 'switch', 'router')
- * @returns {Array} array de field objects
  */
 export const getFieldsForDevice = (deviceId) => {
     const device = DEVICE_TYPES[deviceId];
@@ -686,11 +640,6 @@ export const getFieldsForDevice = (deviceId) => {
 
 /**
  * Devuelve los campos agrupados por sección visual del modal.
- * Respeta el orden definido en SECTIONS.
- * Lo usa NodeEditModal para renderizar secciones + campos dinámicamente.
- * 
- * @param {string} deviceId - id del dispositivo
- * @returns {Object} { basica: { label, bgClass, iconSvg, fields: [] }, red: {...}, ... }
  */
 export const getFieldsBySection = (deviceId) => {
     const allFields = getFieldsForDevice(deviceId);
@@ -713,9 +662,6 @@ export const getFieldsBySection = (deviceId) => {
 /**
  * Devuelve los datos iniciales (vacíos) para crear un nodo de este tipo.
  * Lo usa el Sidebar al hacer drag o click en un botón.
- * 
- * @param {string} deviceId - id del dispositivo
- * @returns {Object} data object con todos los campos inicializados en ''
  */
 export const getInitialDataForDevice = (deviceId) => {
     const device = DEVICE_TYPES[deviceId];

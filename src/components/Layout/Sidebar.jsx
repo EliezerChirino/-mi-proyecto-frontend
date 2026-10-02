@@ -136,12 +136,8 @@ const Sidebar = ({ isOpen, onToggle, onAddNode }) => {
         event.dataTransfer.effectAllowed = 'move';
     };
 
-    const handleAddNodeClick = (nodeType, extraData) => {
-        const randomPosition = {
-            x: Math.random() * 400,
-            y: Math.random() * 400,
-        };
-        onAddNode(nodeType, randomPosition, extraData);
+   const handleAddNodeClick = (nodeType, extraData) => {
+        onAddNode(nodeType, null, extraData);
     };
 
     return (

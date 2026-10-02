@@ -49,8 +49,30 @@
 }
 
 /* Reset mínimo, alcance de toda la app */
-* {
+/* Reset base (reemplaza el "preflight" que traía Tailwind) */
+:root {
+  color-scheme: dark;
+}
+
+*, *::before, *::after {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0 solid;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+  background-color: transparent;
+}
+
+img, svg {
+  display: block;
 }
 
 body {

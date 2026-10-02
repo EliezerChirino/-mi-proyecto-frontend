@@ -1,0 +1,224 @@
+/* GenericDeviceNode.css — nodo de dispositivo, identidad "Admin Red" */
+
+.device-node {
+    position: relative;
+    width: 220px;
+    /* --st = color de estado; --st-bg = fondo de la franja; --data-color = valores IP/MAC */
+    --st: var(--color-st-unknown);
+    --st-bg: var(--color-bg-1);
+    --data-color: var(--color-text-1);
+}
+
+.device-node--online  { --st: var(--color-st-online); }
+.device-node--offline { --st: var(--color-st-offline); --st-bg: var(--color-st-offline-tint); --data-color: var(--color-text-2); }
+.device-node--maint   { --st: var(--color-st-maint);   --st-bg: var(--color-st-maint-tint); }
+.device-node--unknown { --data-color: var(--color-text-2); }
+
+/* ─── Tarjeta ─── */
+
+.device-node__card {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-2);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+
+.device-node:hover .device-node__card {
+    border-color: var(--color-line-2);
+}
+
+.device-node--selected .device-node__card {
+    border-color: var(--color-steel);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-steel) 14%, transparent);
+}
+
+/* Nodo origen mientras se crea una conexión */
+.device-node--source::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border: 1px dashed var(--color-steel);
+    border-radius: 6px;
+    pointer-events: none;
+}
+
+/* ─── Cabecera ─── */
+
+.device-node__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 8px;
+}
+
+.device-node__icon {
+    width: 32px;
+    height: 32px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-1);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-2);
+}
+
+.device-node__titles {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.device-node__kind {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+}
+
+.device-node__name {
+    font-size: 13.5px;
+    font-weight: 600;
+    font-stretch: 95%;
+    color: var(--color-text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ─── Franja de estado ─── */
+
+.device-node__status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 12px;
+    background: var(--st-bg);
+    border-top: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+}
+
+.device-node__status-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--st);
+}
+
+.device-node__latency {
+    color: var(--color-text-3);
+}
+
+/* ─── Datos ─── */
+
+.device-node__data {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    row-gap: 3px;
+    padding: 6px 12px 8px;
+    font-family: var(--font-mono);
+}
+
+.device-node__data-key {
+    font-size: 10px;
+    color: var(--color-text-3);
+}
+
+.device-node__data-value {
+    font-size: 11.5px;
+    color: var(--data-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ─── Botón de menú (vive fuera de la tarjeta para no recortarse) ─── */
+
+.device-node__menu {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    z-index: 5;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-3);
+    border: 1px solid var(--color-line-2);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-1);
+    cursor: pointer;
+}
+
+.device-node__menu:hover {
+    border-color: var(--color-steel);
+}
+
+/* ─── Esquinas de visor (nodo seleccionado) ─── */
+
+.device-node__corner {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border: 0 solid var(--color-steel);
+    pointer-events: none;
+}
+
+.device-node__corner--tl { top: -7px;    left: -7px;  border-top-width: 2px;    border-left-width: 2px; }
+.device-node__corner--tr { top: -7px;    right: -7px; border-top-width: 2px;    border-right-width: 2px; }
+.device-node__corner--bl { bottom: -7px; left: -7px;  border-bottom-width: 2px; border-left-width: 2px; }
+.device-node__corner--br { bottom: -7px; right: -7px; border-bottom-width: 2px; border-right-width: 2px; }
+
+/* ─── Handles (se prefija con .device-node para ganarle a los estilos de React Flow) ─── */
+
+.device-node .device-node__handle {
+    width: 8px;
+    height: 8px;
+    background: var(--color-bg-0);
+    border: 1.5px solid var(--color-line-2);
+    border-radius: 1px;
+}
+
+.device-node:hover .device-node__handle--out,
+.device-node--selected .device-node__handle--out {
+    border-color: var(--color-steel);
+}
+
+.device-node .device-node__handle--out:hover {
+    width: 10px;
+    height: 10px;
+    background: var(--color-steel);
+    border-color: var(--color-steel);
+}
+
+/* Los -in existen siempre en el DOM (las conexiones guardadas los usan) pero se ocultan */
+.device-node .device-node__handle--in {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Destino válido mientras hay una conexión en curso */
+.device-node .device-node__handle--target {
+    opacity: 1;
+    pointer-events: all;
+    width: 10px;
+    height: 10px;
+    background: var(--color-steel);
+    border-color: var(--color-steel);
+}
+
+/* Nodo nuevo sin confirmar en el panel */
+.device-node--draft .device-node__card {
+    border-style: dashed;
+}

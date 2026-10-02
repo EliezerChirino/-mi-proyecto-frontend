@@ -18,17 +18,27 @@ import Navbar from './components/Layout/Navbar';
 import Sidebar from './components/Layout/Sidebar';
 import GenericDeviceNode from './components/Nodes/GenericDeviceNode';
 import { DEVICE_TYPES } from './config/deviceTypes';
-import Alert from './components/UI/Alert';
-import NodeEditModal from './components/UI/NodeEditModal';
+import { normalizeStatus } from './utils/status';
+import ToastRegion from './components/UI/ToastRegion';
+import { ToastProvider, useToast } from './context/ToastContext';
+import DevicePanel from './components/UI/DevicePanel';
+import { cx } from './utils/cx';
 
 const nodeTypes = Object.values(DEVICE_TYPES).reduce((acc, device) => {
     acc[device.nodeType] = GenericDeviceNode;
     return acc;
 }, {});
 
+
+const NODE_WIDTH = 220;
+const NODE_HEIGHT = 134;
+
 const initialNodes = [];
 const initialEdges = [];
 
+function getMiniMapNodeColor(node) {
+    return `var(--color-st-${normalizeStatus(node.data?.status)})`;
+}
 function App() {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
@@ -37,23 +47,17 @@ function App() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const nodeIdRef = useRef(1);
-  const [alert, setAlert] = useState(null);
+
   const [connectingNodeId, setConnectingNodeId] = useState(null);
   const [isLoadingDevices, setIsLoadingDevices] = useState(true);
-  
-  const [newNodeModal, setNewNodeModal] = useState({
-    isOpen: false,
-    nodeId: null,
-    nodeData: null
-  });
+  const [panel, setPanel] = useState(null);
 
-  const showAlert = useCallback((type, message, duration = 3000) => {
-    setAlert({ type, message, duration });
-  }, []);
+  const { notify } = useToast();
 
-  const closeAlert = useCallback(() => {
-    setAlert(null);
-  }, []);
+  // Adaptador: las llamadas viejas showAlert(tipo, mensaje) siguen funcionando
+  const showAlert = useCallback((type, message) => {
+    notify({ type, title: message });
+  }, [notify]);
 
   // ════════════════════════════════════════════════════════════
   //  CARGAR DISPOSITIVOS DESDE BD AL INICIAR
@@ -95,6 +99,7 @@ function App() {
             type: device.tipo || '',
             position: position,
             data: {
+              deviceType: device.tipo,
               label: device.nombre_dispositivo,
               ip: device.ip,
               mac: device.mac,
@@ -109,6 +114,7 @@ function App() {
               createdAt: device.created_at,
               onUpdate: updateNodeData,
               onDelete: deleteNode,
+              onEdit: openEditPanel,
             }
           };
         });
@@ -121,7 +127,7 @@ function App() {
             sourceHandle: conn.source_handle || null,  
             targetHandle: conn.target_handle || null,  
             label: conn.connection_label || '',
-            animated: true,
+            animated: false,
             markerEnd: { type: MarkerType.ArrowClosed },
             type: 'default',
         }));
@@ -141,11 +147,19 @@ function App() {
           nodeIdRef.current = maxNodeNumber + 1;
         }
 
-        showAlert('success', `✅ ${devices.length} dispositivos y ${connections.length} conexiones cargados`, 3000);
+        notify({
+          type: 'success',
+          title: 'Red cargada',
+          message: `${devices.length} dispositivos y ${connections.length} conexiones.`,
+        });
         
       } catch (error) {
         console.error('❌ Error al cargar dispositivos:', error);
-        showAlert('error', `❌ Error al cargar red: ${error.message}`, 5000);
+        notify({
+          type: 'error',
+          title: 'No se pudo cargar la red',
+          message: `${error.message}. Verifica que el backend esté corriendo.`,
+        });
       } finally {
         setIsLoadingDevices(false);
       }
@@ -185,6 +199,10 @@ function App() {
       edge.source !== nodeId && edge.target !== nodeId
     ));
   }, [setNodes, setEdges, showAlert]);
+
+  const openEditPanel = useCallback((nodeId) => {
+    setPanel({ nodeId, isNew: false });
+  }, []);
 
   const onConnectStart = useCallback((event, { nodeId }) => {
     console.log(' Conexión iniciada desde:', nodeId);
@@ -246,7 +264,7 @@ const onConnect = useCallback(
 
       setEdges((eds) => addEdge({ 
         ...params, 
-        animated: true,
+        animated: false,
         markerEnd: { type: MarkerType.ArrowClosed }
       }, eds));
 
@@ -260,54 +278,56 @@ const onConnect = useCallback(
     [setEdges, isValidConnection, showAlert]
 );
 
+function getViewportCenter() {
+    const rect = reactFlowWrapper.current.getBoundingClientRect();
+    const center = screenToFlowPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    });
+    const offset = (nodeIdRef.current % 5) * 24;
+    return {
+      x: center.x - NODE_WIDTH / 2 + offset,
+      y: center.y - NODE_HEIGHT / 2 + offset,
+    };
+  }
   const addNode = useCallback((type, position, extraData = {}) => {
     const nodeId = `node_${nodeIdRef.current}`;
-    
+    const deviceConfig = DEVICE_TYPES[extraData.deviceType];
+    const finalPosition = position || getViewportCenter();
+
     const newNode = {
       id: nodeId,
       type: type || 'default',
-      position,
+      position: finalPosition,
+      selected: true,
       data: { 
-        label: extraData.deviceType === 'switch' 
-          ? `switch ${nodeIdRef.current}` 
-          : `Node ${nodeIdRef.current}`,
-        ...extraData,
+        label: `${deviceConfig ? deviceConfig.label : 'Dispositivo'} ${nodeIdRef.current}`,
         createdAt: new Date().toLocaleString(),
+        isDraft: true,
         connectingNodeId: connectingNodeId,
         onUpdate: updateNodeData,
         onDelete: deleteNode,
+        onEdit: openEditPanel,
       },
     };
 
     nodeIdRef.current++;
     setNodes((nds) => [...nds, newNode]);
     
-    setNewNodeModal({
-      isOpen: true,
-      nodeId: nodeId,
-      nodeData: newNode.data
-    });
-    
-  }, [setNodes, connectingNodeId, updateNodeData, deleteNode]);
+    setPanel({ nodeId, isNew: true });
+  }, [setNodes, connectingNodeId, updateNodeData, deleteNode, openEditPanel]);
 
-  const handleNewNodeSave = useCallback((updatedData) => {
-    console.log(' Guardando nodo:', updatedData);
-    if (newNodeModal.nodeId) {
-      updateNodeData(newNodeModal.nodeId, updatedData);
-      showAlert('success', `${updatedData.label} configurado correctamente`, 2000);
-    }
+  const handlePanelSave = useCallback((formData) => {
+    if (!panel) return;
+    updateNodeData(panel.nodeId, { ...formData, isDraft: false });
+    setPanel(null);
+  }, [panel, updateNodeData]);
 
-    setNewNodeModal({ isOpen: false, nodeId: null, nodeData: null });
-  }, [newNodeModal.nodeId, updateNodeData, showAlert]);
-
-  const handleNewNodeCancel = useCallback(() => {
-    console.log(' Cancelando nodo:', newNodeModal.nodeId);
-    if (newNodeModal.nodeId) {
-      deleteNode(newNodeModal.nodeId);
-      showAlert('info', 'Nodo cancelado', 1500);
-    }
-    setNewNodeModal({ isOpen: false, nodeId: null, nodeData: null });
-  }, [newNodeModal.nodeId, deleteNode, showAlert]);
+  // Cancelar un nodo nuevo lo borra; cancelar una edición solo cierra
+  const handlePanelCancel = useCallback(() => {
+    if (panel?.isNew) deleteNode(panel.nodeId);
+    setPanel(null);
+  }, [panel, deleteNode]);
 
   React.useEffect(() => {
     setNodes((nds) =>
@@ -318,6 +338,7 @@ const onConnect = useCallback(
           connectingNodeId: connectingNodeId,
           onUpdate: updateNodeData,
           onDelete: deleteNode,
+          onEdit: openEditPanel,
         },
       }))
     );
@@ -376,38 +397,23 @@ const onConnect = useCallback(
   //  Indicador de carga
   if (isLoadingDevices) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <svg className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p className="text-gray-600 text-lg font-medium">Cargando red...</p>
-        </div>
+      <div className="app-loading">
+        <svg className="app-loading__spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square">
+          <path d="M12 3a9 9 0 1 0 9 9" />
+        </svg>
+        <span>Cargando red…</span>
       </div>
     );
   }
 
-  return (
-    <div className="app-shell">
-      {alert && (
-        <Alert
-          type={alert.type}
-          message={alert.message}
-          duration={alert.duration}
-          onClose={closeAlert}
-        />
-      )}
+  const panelNode = panel ? nodes.find(n => n.id === panel.nodeId) : null;
+  const takenIps = panelNode
+    ? nodes.filter(n => n.id !== panelNode.id && n.data.ip).map(n => n.data.ip.trim())
+    : [];
 
-      {newNodeModal.isOpen && (
-        <NodeEditModal
-          isOpen={newNodeModal.isOpen}
-          onClose={handleNewNodeCancel}
-          nodeData={newNodeModal.nodeData}
-          onSave={handleNewNodeSave}
-          isNewNode={true}
-        />
-      )}
+  return (
+    
+    <div className="app-shell">
 
       <Sidebar
         isOpen={sidebarOpen}
@@ -425,7 +431,7 @@ const onConnect = useCallback(
 
         <div
           ref={reactFlowWrapper}
-          className="app-shell__canvas"
+          className={cx('app-shell__canvas', panelNode && 'app-shell__canvas--with-panel')}
         >
           <ReactFlow
             nodes={nodes}
@@ -448,15 +454,22 @@ const onConnect = useCallback(
               gap={16}
               variant="dots"
             />
-            <Controls
-              className="bg-white shadow-lg rounded-lg border border-gray-200"
-            />
-            <MiniMap
-              className="bg-white shadow-lg rounded-lg border border-gray-200"
-              nodeColor="#6366f1"
-              maskColor="rgba(0,0,0,0.1)"
-            />
+            <Controls showInteractive={false} />
+            <MiniMap nodeColor={getMiniMapNodeColor} pannable zoomable />
           </ReactFlow>
+
+          {panelNode && (
+            <DevicePanel
+              key={panelNode.id}
+              node={panelNode}
+              isNew={panel.isNew}
+              takenIps={takenIps}
+              onSave={handlePanelSave}
+              onCancel={handlePanelCancel}
+            />
+          )}
+
+          <ToastRegion />
         </div>
       </div>
     </div>
@@ -466,7 +479,9 @@ const onConnect = useCallback(
 export default function AppWrapper() {
   return (
     <ReactFlowProvider>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </ReactFlowProvider>
   );
 }

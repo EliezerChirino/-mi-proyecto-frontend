@@ -1,20 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import { generateFlowDataForDB } from '../../utils/connectionUtils';
-import Alert from '../UI/Alert';
 import './Navbar.css';
+import { useToast } from '../../context/ToastContext';
 
 const Navbar = ({ nodes = [], edges = [] }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [lastResponse, setLastResponse] = useState(null);
-    const [alert, setAlert] = useState(null);
-    
-    const showAlert = useCallback((type, message, duration = 3000) => {
-    setAlert({ type, message, duration });
-    }, []);
 
-    const closeAlert = useCallback(() => {
-    setAlert(null);
-    }, []);
+    const { notify } = useToast();
+
+    const showAlert = useCallback((type, message) => {
+        notify({ type, title: message });
+    }, [notify]);
     
     const handleShowNodes = () => {
         if (nodes.length === 0) {
@@ -41,7 +38,14 @@ const Navbar = ({ nodes = [], edges = [] }) => {
             showAlert('warning', 'No hay nodos para guardar. Crea dispositivos antes de guardar.');
             return;
         }
-
+        if (nodes.some(n => n.data.isDraft)) {
+            notify({
+                type: 'warning',
+                title: 'Hay un dispositivo sin confirmar',
+                message: 'Termina de configurarlo en el panel o cancélalo antes de guardar.',
+            });
+            return;
+        }
         const ips = nodes.map(n => n.data.ip).filter(ip => ip && ip.trim() !== '');
         const duplicateIps = ips.filter((ip, index) => ips.indexOf(ip) !== index);
         
@@ -107,7 +111,11 @@ const Navbar = ({ nodes = [], edges = [] }) => {
 
             if (!deviceResponse.ok) {
                 const errorData = await deviceResponse.json().catch(() => ({}));
-                showAlert('error', `Error al guardar dispositivos: ${errorData.detail || deviceResponse.statusText}`);
+                    notify({
+                        type: 'error',
+                        title: 'No se pudo guardar la red',
+                        message: `${error.message}. Los cambios siguen en el mapa.`,
+                    });
                 throw new Error(
                     `Error al guardar dispositivos: ${errorData.detail || deviceResponse.statusText}`
                 );
@@ -141,7 +149,11 @@ const Navbar = ({ nodes = [], edges = [] }) => {
 
             if (!connectionsResponse.ok) {
                 const errorData = await connectionsResponse.json().catch(() => ({}));
-                showAlert('error', `Error al sincronizar conexiones: ${errorData.detail || connectionsResponse.statusText}`);
+                    notify({
+                        type: 'error',
+                        title: 'No se pudo guardar la red',
+                        message: `Error al sincronizar conexiones: ${errorData.detail || connectionsResponse.statusText}`,
+                    });
                 throw new Error(
                     `Error al sincronizar conexiones: ${errorData.detail || connectionsResponse.statusText}`
                 );
@@ -161,21 +173,21 @@ const Navbar = ({ nodes = [], edges = [] }) => {
             const stats = deviceResult.statistics || deviceResult;
             const connStats = connectionsResult.statistics || {};
 
-            showAlert('success', `¡Red Guardada exitosamente!\n\n` +
-                `DISPOSITIVOS:\n` +
-                `   • Creados: ${stats.created || 0}\n` +
-                `   • Actualizados: ${stats.updated || 0}\n` +
-                `   • Total procesados: ${stats.total_received || devicesToSave.length}\n\n` +
-                `CONEXIONES:\n` +
-                `   • Creadas: ${connStats.connections_created || 0}\n` +
-                `   • Eliminadas: ${connStats.connections_deleted || 0}\n` +
-                `   • Total actual: ${connStats.total_in_db || edges.length}\n` +
-                `${stats.errors > 0 ? `\n⚠️ Errores: ${stats.errors}` : ''}`);
+            notify({
+                type: stats.errors > 0 ? 'warning' : 'success',
+                title: stats.errors > 0 ? 'Red guardada con errores' : 'Red guardada',
+                message: `${stats.total_received || devicesToSave.length} dispositivos · ${connStats.total_in_db ?? edges.length} enlaces.`,
+                data: `+${stats.created || 0} nuevos · ${stats.updated || 0} actualizados · ${connStats.connections_deleted || 0} enlaces eliminados`,
+            });
 
 
         } catch (error) {
-            console.error('❌ Error al guardar:', error);
-            showAlert('error', `Error al guardar:\n\n${error.message}`);
+
+            notify({
+                type: 'error',
+                title: 'No se pudo guardar la red',
+                message: `${error.message}. Los cambios siguen en el mapa.`,
+            });
         } finally {
             setIsLoading(false);
         }
@@ -248,14 +260,6 @@ const Navbar = ({ nodes = [], edges = [] }) => {
                 <span className="navbar__user-name">Usuario</span>
             </div>
         </nav>
-        {alert && (
-            <Alert
-                type={alert.type}
-                message={alert.message}
-                duration={alert.duration}
-                onClose={closeAlert}
-            />
-        )}
     </>
     );
 };

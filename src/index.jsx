@@ -1,6 +1,5 @@
 import { createRoot } from 'react-dom/client';
 import './styles/tokens.css';
-import './styles/style.css';
 import App from './App';
 
 const container = document.querySelector('#app');
