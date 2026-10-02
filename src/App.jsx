@@ -301,6 +301,7 @@ function getViewportCenter() {
       position: finalPosition,
       selected: true,
       data: { 
+        ...extraData,
         label: `${deviceConfig ? deviceConfig.label : 'Dispositivo'} ${nodeIdRef.current}`,
         createdAt: new Date().toLocaleString(),
         isDraft: true,

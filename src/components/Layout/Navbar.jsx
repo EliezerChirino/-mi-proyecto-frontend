@@ -111,11 +111,6 @@ const Navbar = ({ nodes = [], edges = [] }) => {
 
             if (!deviceResponse.ok) {
                 const errorData = await deviceResponse.json().catch(() => ({}));
-                    notify({
-                        type: 'error',
-                        title: 'No se pudo guardar la red',
-                        message: `${error.message}. Los cambios siguen en el mapa.`,
-                    });
                 throw new Error(
                     `Error al guardar dispositivos: ${errorData.detail || deviceResponse.statusText}`
                 );
@@ -149,11 +144,7 @@ const Navbar = ({ nodes = [], edges = [] }) => {
 
             if (!connectionsResponse.ok) {
                 const errorData = await connectionsResponse.json().catch(() => ({}));
-                    notify({
-                        type: 'error',
-                        title: 'No se pudo guardar la red',
-                        message: `Error al sincronizar conexiones: ${errorData.detail || connectionsResponse.statusText}`,
-                    });
+
                 throw new Error(
                     `Error al sincronizar conexiones: ${errorData.detail || connectionsResponse.statusText}`
                 );
