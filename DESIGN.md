@@ -290,6 +290,8 @@ Archivos: `components/Nodes/GenericDeviceNode.jsx`, `GenericDeviceNode.css`, `ut
 
 **Interacción:** doble clic abre el panel de edición (10.5); el botón ⋮ (aparece al pasar el cursor) abre el menú (10.7).
 
+**Destello al recibir una conexión** `[Hecho]`: al crear un enlace, el nodo destino recibe `data.pulse = { id, side }` (`side` sale del handle: `left-in` → `left`). El nodo dibuja `<span key={pulse.id} class="device-node__pulse device-node__pulse--<side>">` con un `<rect>` SVG (`pathLength="100"`, `stroke-dasharray: 18 82`) cuya luz en **acero** recorre el borde ~42 unidades en sentido horario desde el lado de entrada (0,7 s) y se apaga, más un resplandor que se desvanece (0,9 s). Cambiar `key` reinicia la animación: sin timers. `pulse` no se envía al backend. Con `prefers-reduced-motion` solo queda el resplandor. [Propuesta, segunda fase: "resorte" en la línea de conexión al acercarse a un handle válido, con `connectionLineComponent`.]
+
 ### 10.2 Sidebar de dispositivos `[Hecho]`
 
 Archivos: `Sidebar.jsx`, `Sidebar.css`.
@@ -298,6 +300,7 @@ Archivos: `Sidebar.jsx`, `Sidebar.css`.
 - **Compacta (56 px):** logo, botón de expandir, y por grupo el código (mono 8.5) como separador y los iconos de 18 px en celdas de 38×36. El nombre aparece en `title` (tooltip).
 - Cada fila es **arrastrable** y **clicable**. El clic llama a `onAddNode(tipo, null, datos)` y App lo coloca en el **centro de la vista actual** (`getViewportCenter`), con un desplazamiento en escalera de 24 px para no apilar nodos. Arrastrar lo coloca donde se suelta. Nombre por defecto: `<Tipo> <n>` ("PC 4").
 - Hover de fila: fondo `bg-3`, borde `line-2`.
+- **Estado recordado** `[Hecho]`: abierta/compacta se guarda en `localStorage` (`adminRed.sidebarOpen`) y se restaura al recargar. Lectura con `useState(readSidebarOpen)` (inicialización perezosa) y escritura en un `useEffect`, ambas en `try/catch` (modo privado).
 
 ### 10.3 Barra superior `[Hecho, parcial]`
 
@@ -377,6 +380,37 @@ Hay un adaptador `showAlert(tipo, mensaje)` en App y Navbar para las llamadas an
 Archivos: `components/UI/NodeDropdownMenu.jsx`, `NodeDropdownMenu.css`. Se abre con el botón ⋮ del nodo; se cierra al hacer clic fuera o con Esc.
 
 Flotante nivel 3 (`bg-3`, borde `line-2`, radio 4, `shadow-float`), 180 px de ancho, debajo del nodo alineado a la derecha. Filas de 30 px con icono de 14 px y texto 13 px; hover `bg-2`. Opciones: **Editar** (abre el panel 10.5) y **Eliminar** (en rojo de estado). Eliminar pide **confirmación dentro del propio menú** (la fila cambia a "¿Eliminar? · Sí"), sin `window.confirm`. [Propuesta: "Verificar ahora" y "Ver historial" cuando exista el monitoreo.]
+
+### 10.8 Color de grupo del nodo `[Aprobado · Pendiente: requiere backend]`
+
+Permite al usuario pintar nodos para agruparlos visualmente (p. ej. Planta, Oficinas, Almacén). **Variante elegida: B, cabecera teñida.**
+
+**Regla:** el color de grupo vive **solo en la cabecera** del nodo. **Nunca** toca el borde, la franja de estado, los datos, los enlaces ni el MiniMap: esos significan estado o interacción (regla R2). La franja de estado debe seguir dominando visualmente aunque la cabecera esté teñida.
+
+**Cómo se pinta (variante B):**
+- `.device-node__header`: fondo `color-mix(in oklab, var(--g) 11%, transparent)`.
+- `.device-node__icon`: trazo del icono en `var(--g)`, borde `color-mix(in oklab, var(--g) 35%, transparent)`.
+- El nombre y el código `CÓDIGO · Tipo` no cambian de color.
+- Implementación: modificador `.device-node--group` + `style="--g: var(--group-<clave>)"`, o una clase por color.
+
+**Paleta** (tokens a crear en `tokens.css`; misma luminosidad y croma bajo para que se lean como etiqueta y no como alarma; los estados usan croma 0.14–0.19):
+
+| Clave | Token | OKLCH |
+|---|---|---|
+| `indigo` | `--group-indigo` | `oklch(0.72 0.09 270)` |
+| `lavanda` | `--group-lavanda` | `oklch(0.72 0.09 310)` |
+| `terracota` | `--group-terracota` | `oklch(0.72 0.09 45)` |
+| `oliva` | `--group-oliva` | `oklch(0.72 0.09 120)` |
+| `salvia` | `--group-salvia` | `oklch(0.72 0.09 190)` |
+| `piedra` | `--group-piedra` | `oklch(0.72 0.012 60)` (neutro) |
+
+Descartados: **ciruela** (345; con la cabecera teñida se confunde con el tinte de "fuera de línea"), **arena** (choca con el ámbar de mantenimiento, 85), **pizarra/celeste** (choca con el acero de interacción, 230).
+
+**Datos:** columna `color_grupo VARCHAR(20) NULL` en `devices` que guarda la **clave** (`'lavanda'`), nunca el hex: si un tono se ajusta, todos los nodos cambian sin migrar datos. Requiere migración de Alembic, schema Pydantic, `bulk` y carga en `App.jsx`.
+
+**Selector:** en el panel lateral (10.5), dentro de "Más detalles": fila de 6 muestras de 20×20 (radio 2) + "Sin color"; la elegida con borde acero de 2 px. Cada muestra con `title` y `aria-label` con su nombre.
+
+[Propuesta futura: nombrar los grupos ("Lavanda = Oficinas") con una leyenda en la barra superior y filtrar el mapa por grupo.]
 
 ---
 
@@ -492,6 +526,8 @@ Ajustes de React Flow en el mismo archivo: puntos del fondo, `.react-flow__edge-
 | **Monitoreo en vivo** (activar tarea del backend + WebSocket `/ws` en el frontend) | **Siguiente** (backend) |
 | Barra roja de pestaña activa, buscador del sidebar, `Ctrl S` | Pendiente |
 | Alerta en línea, conteos por estado en la barra superior | Pendiente |
+| Destello al conectar, sidebar recordada | Hecho |
+| Color de grupo (variante B) | Aprobado; se hace con el backend |
 
 **Funcionalidades visuales que el diseño anticipa** (por orden de valor): estado en vivo por WebSocket (`/ws`) con actualización de glifos sin recargar; resumen de conteos por estado en la barra superior; vista "Ver dispositivos" como inventario en tabla; selector de red por sede o filial; buscador de dispositivos; notificaciones automáticas de cambio de estado.
 

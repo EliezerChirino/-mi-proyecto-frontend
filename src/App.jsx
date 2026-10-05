@@ -33,6 +33,17 @@ const nodeTypes = Object.values(DEVICE_TYPES).reduce((acc, device) => {
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 134;
 
+// Preferencia de la sidebar guardada en el navegador
+const SIDEBAR_KEY = 'adminRed.sidebarOpen';
+
+function readSidebarOpen() {
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
 const initialNodes = [];
 const initialEdges = [];
 
@@ -45,7 +56,15 @@ function App() {
   
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_KEY, String(sidebarOpen));
+    } catch {
+    }
+  }, [sidebarOpen]);
+
   const nodeIdRef = useRef(1);
 
   const [connectingNodeId, setConnectingNodeId] = useState(null);
@@ -268,6 +287,12 @@ const onConnect = useCallback(
         markerEnd: { type: MarkerType.ArrowClosed }
       }, eds));
 
+      const side = (params.targetHandle || 'left-in').split('-')[0];
+      setNodes((nds) => nds.map((node) => node.id === params.target
+        ? { ...node, data: { ...node.data, pulse: { id: Date.now(), side } } }
+        : node
+      ));
+
       showAlert('success', 'Conexión creada exitosamente');
       
       setTimeout(() => {
@@ -275,7 +300,7 @@ const onConnect = useCallback(
         setConnectingNodeId(null);
       }, 100);
     },
-    [setEdges, isValidConnection, showAlert]
+  [setEdges, setNodes, isValidConnection, showAlert]
 );
 
 function getViewportCenter() {

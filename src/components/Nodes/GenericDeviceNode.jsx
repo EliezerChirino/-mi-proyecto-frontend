@@ -62,7 +62,13 @@ const GenericDeviceNode = ({ data, id, selected }) => {
                 onMouseLeave={() => setIsHovered(false)}
                 onDoubleClick={handleDoubleClick}
             >
-                <div className="device-node__card">
+            <div
+                    key={data.pulse ? `card-${data.pulse.id}` : 'card'}
+                    className={cx(
+                        'device-node__card',
+                        data.pulse && `device-node__card--shake-${data.pulse.side}`
+                    )}
+                >
                     <div className="device-node__header">
                         <div className="device-node__icon">
                             <svg
@@ -100,6 +106,19 @@ const GenericDeviceNode = ({ data, id, selected }) => {
                         <span className="device-node__data-value">{data.mac || '—'}</span>
                     </div>
                 </div>
+
+                {/* Destello al recibir una conexión. key = nuevo id → la animación se repite */}
+                {data.pulse && (
+                    <span
+                        key={`pulse-${data.pulse.id}`}
+                        className={cx('device-node__pulse', `device-node__pulse--${data.pulse.side}`)}
+                        aria-hidden="true"
+                    >
+                        <svg className="device-node__pulse-trail">
+                            <rect className="device-node__pulse-cw" x="0" y="0" width="100%" height="100%" rx="4" pathLength="100" />
+                            <rect className="device-node__pulse-ccw" x="0" y="0" width="100%" height="100%" rx="4" pathLength="100" />                        </svg>
+                    </span>
+                )}
 
                 {/* Esquinas de visor: solo seleccionado */}
                 {selected && !isConnecting && (

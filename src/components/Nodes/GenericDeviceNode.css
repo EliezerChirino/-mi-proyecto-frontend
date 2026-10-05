@@ -222,3 +222,117 @@
 .device-node--draft .device-node__card {
     border-style: dashed;
 }
+/* ─── Destello al recibir una conexión ─── */
+
+/* Dos luces nacen en el punto de entrada y recorren el borde en sentidos
+   opuestos hasta encontrarse del otro lado. El contorno mide 100 (pathLength):
+   arriba 0–31, derecha 31–50, abajo 50–81, izquierda 81–100.
+   Cada luz mide 10 y viaja 50 (medio contorno). */
+.device-node__pulse {
+    --cw-from: -80.5;  --cw-to: -130.5;
+    --ccw-from: -90.5; --ccw-to: -40.5;
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-md);
+    pointer-events: none;
+    animation: device-pulse-glow 1.2s ease-out forwards;
+}
+
+.device-node__pulse--top {
+    --cw-from: -5.5;   --cw-to: -55.5;
+    --ccw-from: -15.5; --ccw-to: 34.5;
+}
+.device-node__pulse--right {
+    --cw-from: -30.5;  --cw-to: -80.5;
+    --ccw-from: -40.5; --ccw-to: 9.5;
+}
+.device-node__pulse--bottom {
+    --cw-from: -55.5;  --cw-to: -105.5;
+    --ccw-from: -65.5; --ccw-to: -15.5;
+}
+
+.device-node__pulse-trail {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.device-node__pulse-trail rect {
+    fill: none;
+    stroke: var(--color-steel);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 10 90;
+    /* Doble sombra: una cercana (nitidez) y una amplia (halo) */
+    filter:
+        drop-shadow(0 0 3px var(--color-steel))
+        drop-shadow(0 0 8px var(--color-steel));
+    animation-duration: 0.9s;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.4, 1);
+    animation-fill-mode: forwards;
+}
+
+.device-node__pulse-cw  { animation-name: device-pulse-cw; }
+.device-node__pulse-ccw { animation-name: device-pulse-ccw; }
+
+@keyframes device-pulse-cw {
+    0%   { stroke-dashoffset: var(--cw-from); opacity: 0; }
+    12%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { stroke-dashoffset: var(--cw-to); opacity: 0; }
+}
+
+@keyframes device-pulse-ccw {
+    0%   { stroke-dashoffset: var(--ccw-from); opacity: 0; }
+    12%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { stroke-dashoffset: var(--ccw-to); opacity: 0; }
+}
+
+/* Resplandor de todo el nodo, que se apaga */
+@keyframes device-pulse-glow {
+    0% {
+        box-shadow:
+            inset 0 0 0 1px color-mix(in oklab, var(--color-steel) 55%, transparent),
+            inset 0 0 22px color-mix(in oklab, var(--color-steel) 14%, transparent),
+            0 0 28px 2px color-mix(in oklab, var(--color-steel) 28%, transparent);
+    }
+    100% {
+        box-shadow:
+            inset 0 0 0 1px transparent,
+            inset 0 0 22px transparent,
+            0 0 28px 2px transparent;
+    }
+}
+
+/* ─── Vibración al recibir la conexión ─── */
+/* --shake-dir: 1 o -1 según de qué lado llega el golpe */
+
+.device-node__card--shake-left   { --shake-dir: 1;  animation: device-shake-x 0.38s ease-out; }
+.device-node__card--shake-right  { --shake-dir: -1; animation: device-shake-x 0.38s ease-out; }
+.device-node__card--shake-top    { --shake-dir: 1;  animation: device-shake-y 0.38s ease-out; }
+.device-node__card--shake-bottom { --shake-dir: -1; animation: device-shake-y 0.38s ease-out; }
+
+@keyframes device-shake-x {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(calc(var(--shake-dir) * 2px)); }
+    40% { transform: translateX(calc(var(--shake-dir) * -1.5px)); }
+    60% { transform: translateX(calc(var(--shake-dir) * 1px)); }
+    80% { transform: translateX(calc(var(--shake-dir) * -0.5px)); }
+}
+
+@keyframes device-shake-y {
+    0%, 100% { transform: translateY(0); }
+    20% { transform: translateY(calc(var(--shake-dir) * 2px)); }
+    40% { transform: translateY(calc(var(--shake-dir) * -1.5px)); }
+    60% { transform: translateY(calc(var(--shake-dir) * 1px)); }
+    80% { transform: translateY(calc(var(--shake-dir) * -0.5px)); }
+}
+
+/* Menos movimiento: sin luces viajando ni vibración, solo el resplandor */
+@media (prefers-reduced-motion: reduce) {
+    .device-node__pulse-trail { display: none; }
+    [class*="device-node__card--shake"] { animation: none; }
+}
