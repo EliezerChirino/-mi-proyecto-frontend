@@ -89,20 +89,6 @@
     to { transform: rotate(360deg); }
 }
 
-.navbar__summary {
-    align-self: center;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-right: 12px;
-    padding: 5px 10px;
-    background: var(--color-st-online);
-    color: var(--color-bg-0);
-    border-radius: var(--radius-sm);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 600;
-}
 
 .navbar__user {
     align-self: center;
@@ -134,3 +120,81 @@
     font-weight: 600;
     color: var(--color-text-1);
 }
+
+/* ─── Indicador de conexión con el monitor ─── */
+
+.navbar__live {
+    align-self: center;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 12px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+}
+
+.navbar__live--on {
+    color: var(--color-st-online);
+}
+
+
+/* ─── Cambios sin guardar ─── */
+
+.navbar__pending {
+    align-self: center;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 12px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-st-maint);
+}
+
+/* Punto alineado con la primera línea, no con el centro del bloque */
+.navbar__pending-glyph {
+    align-self: flex-start;
+    line-height: 1.25;
+}
+
+/* Las dos líneas, una encima de la otra */
+.navbar__pending-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.25;
+}
+
+/* Línea pequeña: tono neutro, sin mayúsculas, para que no compita con el título */
+.navbar__pending-hint {
+    font-size: 9.5px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--color-text-3);
+}
+
+/* Halo ámbar en el botón mientras haya algo pendiente */
+.navbar__save--pending {
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-st-maint) 50%, transparent);
+}
+
+/* Hora del último guardado: dato tranquilo, sin color de estado */
+.navbar__saved {
+    align-self: center;
+    margin-right: 12px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-3);
+}
+

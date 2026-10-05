@@ -1,11 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { generateFlowDataForDB } from '../../utils/connectionUtils';
 import './Navbar.css';
+import { cx } from '../../utils/cx';
 import { useToast } from '../../context/ToastContext';
 
-const Navbar = ({ nodes = [], edges = [] }) => {
+const Navbar = ({ nodes = [], edges = [], monitorConectado = false, hayCambios = false, onSaved }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const [lastResponse, setLastResponse] = useState(null);
+        const [ultimoGuardado, setUltimoGuardado] = useState(null);   
 
     const { notify } = useToast();
 
@@ -78,7 +79,7 @@ const Navbar = ({ nodes = [], edges = [] }) => {
                         gateway: originalNode?.data.gateway || '',
                         vlan: originalNode?.data.vlan || '',
                         puerto: originalNode?.data.puerto || '',
-                        dns: originalNode?.data.dns || '',           // ✅ DNS INCLUIDO
+                        dns: originalNode?.data.dns || '',           //  DNS INCLUIDO
                         ubicacion: originalNode?.data.ubicacion || '',
                         descripcion: originalNode?.data.descripcion || ''
                     },
@@ -101,7 +102,7 @@ const Navbar = ({ nodes = [], edges = [] }) => {
 
             const devicesPayload = { devices: devicesToSave };
 
-            console.log('📤 Enviando dispositivos:', JSON.stringify(devicesPayload, null, 2));
+            console.log(' Enviando dispositivos:', JSON.stringify(devicesPayload, null, 2));
 
             const deviceResponse = await fetch('http://localhost:8080/api/devices/bulk', {
                 method: 'POST',
@@ -117,7 +118,7 @@ const Navbar = ({ nodes = [], edges = [] }) => {
             }
 
             const deviceResult = await deviceResponse.json();
-            console.log('✅ Dispositivos guardados:', deviceResult);
+            console.log(' Dispositivos guardados:', deviceResult);
 
             // ============================================
             // PASO 2: SINCRONIZAR CONEXIONES
@@ -134,7 +135,7 @@ const Navbar = ({ nodes = [], edges = [] }) => {
                 }))
             };
 
-            console.log('📤 Enviando conexiones:', connectionsPayload);
+            console.log(' Enviando conexiones:', connectionsPayload);
 
             const connectionsResponse = await fetch('http://localhost:8080/api/connections/sync', {
                 method: 'POST',
@@ -151,15 +152,12 @@ const Navbar = ({ nodes = [], edges = [] }) => {
             }
 
             const connectionsResult = await connectionsResponse.json();
-            console.log('✅ Conexiones sincronizadas:', connectionsResult);
+            console.log(' Conexiones sincronizadas:', connectionsResult);
 
             // ============================================
             // MOSTRAR RESULTADO FINAL
             // ============================================
-            setLastResponse({
-                ...deviceResult,
-                connections: connectionsResult.statistics
-            });
+
 
             const stats = deviceResult.statistics || deviceResult;
             const connStats = connectionsResult.statistics || {};
@@ -170,6 +168,8 @@ const Navbar = ({ nodes = [], edges = [] }) => {
                 message: `${stats.total_received || devicesToSave.length} dispositivos · ${connStats.total_in_db ?? edges.length} enlaces.`,
                 data: `+${stats.created || 0} nuevos · ${stats.updated || 0} actualizados · ${connStats.connections_deleted || 0} enlaces eliminados`,
             });
+            setUltimoGuardado(new Date());
+            if (onSaved) onSaved();
 
 
         } catch (error) {
@@ -183,6 +183,18 @@ const Navbar = ({ nodes = [], edges = [] }) => {
             setIsLoading(false);
         }
     };
+
+        // Ctrl + S (o Cmd + S en Mac) guarda la red
+    useEffect(() => {
+        function guardarConTeclado(evento) {
+            if ((evento.ctrlKey || evento.metaKey) && evento.key.toLowerCase() === 's') {
+                evento.preventDefault();   // evita el "Guardar página como…" del navegador
+                if (!isLoading && nodes.length > 0) handleSaveDevices();
+            }
+        }
+        window.addEventListener('keydown', guardarConTeclado);
+        return () => window.removeEventListener('keydown', guardarConTeclado);
+    });
 
     return (
         <>
@@ -205,17 +217,27 @@ const Navbar = ({ nodes = [], edges = [] }) => {
             </button>
 
             <div className="navbar__spacer" />
+            
+            {/* Conexión con el monitor en vivo */}
+            <div
+                className={cx('navbar__live', monitorConectado && 'navbar__live--on')}
+                title={monitorConectado ? 'Recibiendo estados en tiempo real' : 'Sin conexión con el monitor; reintentando…'}
+            >
+                <span aria-hidden="true">{monitorConectado ? '●' : '○'}</span>
+                {monitorConectado ? 'En vivo' : 'Sin conexión'}
+            </div>
 
-            {/* Estado sin guardar / último resultado */}
-            {lastResponse && (
-                <div className="navbar__summary">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
-                        <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {lastResponse.statistics?.created || lastResponse.created} creados
-                    {lastResponse.statistics?.connections_created > 0 &&
-                        ` · ${lastResponse.statistics.connections_created} conexiones`
-                    }
+            {hayCambios ? (
+                <div className="navbar__pending" title="Hay cambios en el mapa que el monitor todavía no conoce">
+                    <span className="navbar__pending-glyph" aria-hidden="true">●</span>
+                    <span className="navbar__pending-text">
+                        <span>Mapa editado</span>
+                        <span className="navbar__pending-hint">Recuerda guardar · Ctrl + S</span>
+                    </span>
+                </div>
+            ) : ultimoGuardado && (
+                <div className="navbar__saved" title="Último guardado de la red">
+                    Guardado {ultimoGuardado.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}
                 </div>
             )}
 
@@ -224,7 +246,8 @@ const Navbar = ({ nodes = [], edges = [] }) => {
                 type="button"
                 onClick={handleSaveDevices}
                 disabled={isLoading || nodes.length === 0}
-                className="navbar__save"
+                className={cx('navbar__save', hayCambios && 'navbar__save--pending')}
+                title="Guardar red (Ctrl + S)"
             >
                 {isLoading ? (
                     <>

@@ -23,6 +23,7 @@ import ToastRegion from './components/UI/ToastRegion';
 import { ToastProvider, useToast } from './context/ToastContext';
 import DevicePanel from './components/UI/DevicePanel';
 import { cx } from './utils/cx';
+import { useMonitorSocket } from './hooks/useMonitorSocket';
 
 const nodeTypes = Object.values(DEVICE_TYPES).reduce((acc, device) => {
     acc[device.nodeType] = GenericDeviceNode;
@@ -70,6 +71,7 @@ function App() {
   const [connectingNodeId, setConnectingNodeId] = useState(null);
   const [isLoadingDevices, setIsLoadingDevices] = useState(true);
   const [panel, setPanel] = useState(null);
+  const [hayCambios, setHayCambios] = useState(false);
 
   const { notify } = useToast();
 
@@ -128,7 +130,9 @@ function App() {
               dns: device.dns,
               descripcion: device.descripcion,
               ubicacion: device.ubicacion,
-              status: device.status_summary?.status || 'unknown',
+              status: device.status_summary?.last_status || 'unknown',
+              latencyMs: device.status_summary?.last_response_time_ms ?? null,
+              checkMethod: device.status_summary?.last_check_method ?? null,
               categoria: device.categoria,
               createdAt: device.created_at,
               onUpdate: updateNodeData,
@@ -203,9 +207,10 @@ function App() {
       })
     );
     showAlert('success', `Nodo actualizado correctamente`, 2000);
-  }, [setNodes, showAlert]);
+  }, [setNodes]);
 
-  const deleteNode = useCallback((nodeId) => {
+  const deleteNode = useCallback((nodeId, { marcarCambio = true } = {}) => {
+    if (marcarCambio) setHayCambios(true);
     setNodes((nds) => {
       const nodeToDelete = nds.find(n => n.id === nodeId);
       if (nodeToDelete) {
@@ -287,6 +292,8 @@ const onConnect = useCallback(
         markerEnd: { type: MarkerType.ArrowClosed }
       }, eds));
 
+      setHayCambios(true);
+
       const side = (params.targetHandle || 'left-in').split('-')[0];
       setNodes((nds) => nds.map((node) => node.id === params.target
         ? { ...node, data: { ...node.data, pulse: { id: Date.now(), side } } }
@@ -343,17 +350,55 @@ function getViewportCenter() {
     setPanel({ nodeId, isNew: true });
   }, [setNodes, connectingNodeId, updateNodeData, deleteNode, openEditPanel]);
 
-  const handlePanelSave = useCallback((formData) => {
+    const handlePanelSave = useCallback((formData) => {
     if (!panel) return;
     updateNodeData(panel.nodeId, { ...formData, isDraft: false });
+    setHayCambios(true);
+    notify(panel.isNew
+      ? {
+          type: 'warning',
+          title: `${formData.label} agregado sin guardar`,
+          message: 'Guarda la red (Ctrl + S) para empezar a monitorearlo.',
+        }
+      : {
+          type: 'info',
+          title: `Cambios en ${formData.label} sin guardar`,
+          message: 'El monitor usará los datos nuevos cuando guardes la red.',
+        });
     setPanel(null);
-  }, [panel, updateNodeData]);
+  }, [panel, updateNodeData, notify]);
 
-  // Cancelar un nodo nuevo lo borra; cancelar una edición solo cierra
+  // Cancelar un nodo nuevo lo borra (sin marcar cambio: nunca existió); cancelar una edición solo cierra
   const handlePanelCancel = useCallback(() => {
-    if (panel?.isNew) deleteNode(panel.nodeId);
+    if (panel?.isNew) deleteNode(panel.nodeId, { marcarCambio: false });
     setPanel(null);
   }, [panel, deleteNode]);
+
+
+    // Envolvemos los cambios de React Flow para detectar los que importan
+  const handleNodesChange = useCallback((changes) => {
+    onNodesChange(changes);
+    const importa = changes.some((c) =>
+      c.type === 'remove' || (c.type === 'position' && c.dragging === false)
+    );
+    if (importa) setHayCambios(true);
+  }, [onNodesChange]);
+
+  const handleEdgesChange = useCallback((changes) => {
+    onEdgesChange(changes);
+    if (changes.some((c) => c.type === 'remove')) setHayCambios(true);
+  }, [onEdgesChange]);
+
+  // Si hay cambios sin guardar, el navegador pregunta antes de cerrar o recargar
+  useEffect(() => {
+    if (!hayCambios) return;
+    function avisarAlSalir(evento) {
+      evento.preventDefault();
+      evento.returnValue = '';
+    }
+    window.addEventListener('beforeunload', avisarAlSalir);
+    return () => window.removeEventListener('beforeunload', avisarAlSalir);
+  }, [hayCambios]);
 
   React.useEffect(() => {
     setNodes((nds) =>
@@ -421,6 +466,46 @@ function getViewportCenter() {
   };
 
   //  Indicador de carga
+
+  // ════════════════════════════════════════════════════════════
+  //  ESTADO EN VIVO (WebSocket del monitor)
+  // ════════════════════════════════════════════════════════════
+  const handleStatusUpdate = useCallback((update) => {
+    // 1. Actualizar el nodo en el mapa
+    setNodes((nds) => nds.map((node) => node.id === update.node_id
+      ? {
+          ...node,
+          data: {
+            ...node.data,
+            status: update.status,
+            latencyMs: update.response_time_ms,
+            checkMethod: update.check_method,
+          },
+        }
+      : node
+    ));
+
+    // 2. Avisar solo cambios reales (no la primera vez que se ve un equipo)
+    if (!update.previous_status) return;
+
+    if (update.status === 'offline') {
+      notify({
+        type: 'error',
+        title: `${update.nombre_dispositivo} fuera de línea`,
+        message: 'No respondió a SNMP, ping ni puertos TCP.',
+        data: update.ip,
+      });
+    } else if (update.status === 'online') {
+      notify({
+        type: 'success',
+        title: `${update.nombre_dispositivo} en línea`,
+        message: 'El equipo volvió a responder.',
+        data: `${update.ip} · ${Math.round(update.response_time_ms)} ms`,
+      });
+    }
+  }, [setNodes, notify]);
+
+  const monitorConectado = useMonitorSocket(handleStatusUpdate);
   if (isLoadingDevices) {
     return (
       <div className="app-loading">
@@ -453,6 +538,9 @@ function getViewportCenter() {
           edges={edges}
           onExport={handleExport}
           onClear={handleClear}
+          monitorConectado={monitorConectado}
+          hayCambios={hayCambios}
+          onSaved={() => setHayCambios(false)}
         />
 
         <div
@@ -462,8 +550,8 @@ function getViewportCenter() {
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
             onConnect={onConnect}
             onConnectStart={onConnectStart}
             onConnectEnd={onConnectEnd}

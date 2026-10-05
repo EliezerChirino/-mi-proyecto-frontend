@@ -20,6 +20,11 @@ const HANDLES = [
 ];
 
 
+function describirVerificacion(status, data) {
+    if (status !== 'online' || data.latencyMs == null) return '—';
+    const metodo = (data.checkMethod || '').replace('tcp:', 'tcp ').toUpperCase();
+    return `${metodo} · ${Math.round(data.latencyMs)} ms`;
+}
 
 const GenericDeviceNode = ({ data, id, selected }) => {
     const [isHovered, setIsHovered] = useState(false);
@@ -95,7 +100,7 @@ const GenericDeviceNode = ({ data, id, selected }) => {
                             {statusInfo.label}
                         </span>
                         <span className="device-node__latency">
-                            {status === 'unknown' ? 'sin SNMP' : '—'}
+                            {describirVerificacion(status, data)}
                         </span>
                     </div>
 

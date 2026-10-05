@@ -286,7 +286,9 @@ Archivos: `components/Nodes/GenericDeviceNode.jsx`, `GenericDeviceNode.css`, `ut
 
 **Estructura DOM:** `.device-node` (relativo, sin recorte) contiene `.device-node__card` (con `overflow: hidden`) y, como hermanos, el botón de menú, las esquinas de visor y los handles, para que no se recorten.
 
-**Mapeo de estado backend → UI:** se normaliza en un único lugar, `utils/status.js` (`normalizeStatus`). Valores de la UI: `online | offline | maint | unknown` (coinciden con los tokens `--color-st-*` y con el backend). Entradas aceptadas: `online`/`activo` → `online`; `offline`/`inactivo` → `offline`; `maint`/`mantenimiento` → `maint`; cualquier otra cosa (incluido vacío) → `unknown`. Etiquetas: En línea ●, Fuera de línea ■, Mantenimiento ▲, Desconocido ○. **Mantenimiento** no existe aún en el backend (sería un estado manual) **[Pendiente]**. La latencia real aún no llega del backend: hoy se muestra `—` o `sin SNMP` **[Pendiente: monitoreo en vivo]**.
+**Mapeo de estado backend → UI:** se normaliza en un único lugar, `utils/status.js` (`normalizeStatus`). Valores de la UI: `online | offline | maint | unknown` (coinciden con los tokens `--color-st-*` y con el backend). Entradas aceptadas: `online`/`activo` → `online`; `offline`/`inactivo` → `offline`; `maint`/`mantenimiento` → `maint`; cualquier otra cosa (incluido vacío) → `unknown`. Etiquetas: En línea ●, Fuera de línea ■, Mantenimiento ▲, Desconocido ○. **Mantenimiento** no existe aún en el backend (sería un estado manual) **[Pendiente]**.
+
+**Texto a la derecha de la franja** `[Hecho]`: método con el que respondió y latencia, en mono `text-3`: `ICMP · 8 ms`, `SNMP · 3 ms`, `TCP 445 · 4 ms`. En fuera de línea o desconocido: `—`. Datos: `data.checkMethod` y `data.latencyMs` (vienen de `status_summary` al cargar y del WebSocket en vivo).
 
 **Interacción:** doble clic abre el panel de edición (10.5); el botón ⋮ (aparece al pasar el cursor) abre el menú (10.7).
 
@@ -308,6 +310,8 @@ Archivos: `Navbar.jsx`, `Navbar.css`. Altura 56 px, fondo `bg-1`, borde inferior
 
 - **Izquierda:** pestañas **Mapa** (activa: texto `text-1` 600 y barra de 2 px en `brand` en el borde inferior **[Pendiente: la barra roja aún no está en el CSS]**) y **Ver dispositivos** (con contador mono en chip).
 - **Derecha:** resumen del último guardado, botón **Guardar red** (hueso sobre grafito, 32 px alto, radio 3; deshabilitado: `bg-3` + `text-3`), separador y chip de usuario (avatar 28×28 con iniciales).
+- **Indicador de monitor** `[Hecho]`: `● EN VIVO` (verde de estado) cuando el WebSocket está conectado; `○ SIN CONEXIÓN` (`text-3`) mientras reintenta. Mono 10.5 600 MAYÚSCULAS.
+- **Cambios sin guardar** `[Hecho]`: `● MAPA EDITADO` en ámbar (`st-maint`) con una segunda línea `Recuerda guardar · Ctrl + S` (9.5 px, `text-3`, sin mayúsculas), y halo ámbar de 2 px en el botón Guardar. Tras guardar se reemplaza por `GUARDADO HH:MM` en `text-3`. Cuentan como cambio: confirmar o editar un equipo en el panel, eliminarlo, soltar un nodo movido, crear o borrar enlaces. No cuentan: seleccionar, actualizaciones de estado del monitor, cancelar un nodo nuevo. Con cambios pendientes el navegador pide confirmación al cerrar o recargar (`beforeunload`). **Ctrl + S** guarda.
 - **[Propuesta, de la maqueta original, sin implementar]:** selector de red por sede o filial ("Sede Principal · Guacara"); resumen de conteos por estado con los mismos glifos del nodo (`42 ● · 3 ■ · 1 ▲ · 2 ○`) y hora del último sondeo (`SNMP · hace 30 s`); indicador "Cambios sin guardar"; atajo `Ctrl S` en el botón guardar.
 
 ### 10.4 Controles de zoom y MiniMap `[Hecho]`
@@ -373,7 +377,12 @@ Hay un adaptador `showAlert(tipo, mensaje)` en App y Navbar para las llamadas an
 
 **Alerta en línea** `[Propuesta, diseñada, sin implementar]`: para dentro de paneles y formularios. Fila con padding 8/12, borde `line`, radio 4, fondo con el color del tipo al 8–12 %; a la izquierda glifo + TIPO en mono, a la derecha el texto 13 px `text-1`.
 
-**Futuras notificaciones automáticas** (dependen del monitoreo en vivo): equipo fuera de línea (error, con IP en `data`), equipo de vuelta en línea (éxito), latencia alta (advertencia), sondeo completado con conteos `42 ● · 3 ■ · 1 ▲ · 2 ○` (info), "Cambios sin guardar" con acción "Guardar red" (advertencia).
+**Notificaciones del monitor** `[Hecho]`: llegan por WebSocket (`status_update`) solo cuando un equipo **cambia** de estado (el backend compara con el estado previo). Si `previous_status` es nulo (equipo visto por primera vez) se actualiza el nodo sin toast.
+- Pasa a fuera de línea → **error** (fijo): "`<nombre>` fuera de línea" · "No respondió a SNMP, ping ni puertos TCP." · `data`: IP.
+- Vuelve a en línea → **éxito**: "`<nombre>` en línea" · "El equipo volvió a responder." · `data`: IP · latencia.
+- Confirmar un equipo nuevo en el panel → **advertencia**: "`<nombre>` agregado sin guardar" · "Guarda la red (Ctrl + S) para empezar a monitorearlo."
+
+[Propuesta: latencia alta (advertencia), resumen de sondeo con conteos `42 ● · 3 ■ · 1 ▲ · 2 ○` (info).]
 
 ### 10.7 Menú del nodo `[Hecho]`
 
@@ -523,8 +532,11 @@ Ajustes de React Flow en el mismo archivo: puntos del fondo, `.react-flow__edge-
 | Notificaciones (toasts) | Hecho |
 | Menú del nodo y pantalla de carga | Hecho |
 | Quitar Tailwind y archivos sin uso | Hecho |
-| **Monitoreo en vivo** (activar tarea del backend + WebSocket `/ws` en el frontend) | **Siguiente** (backend) |
-| Barra roja de pestaña activa, buscador del sidebar, `Ctrl S` | Pendiente |
+| Monitoreo en vivo: cascada SNMP → ICMP → TCP asíncrona cada 30 s, WebSocket con reconexión, nodos y toasts en vivo | Hecho |
+| Indicador EN VIVO, cambios sin guardar, Ctrl + S | Hecho |
+| ARP como cuarto método (leer estado Reachable/Stale; solo misma subred) | Pendiente |
+| Robustez: URL del API en `.env`, CORS configurable, `requirements.txt` limpio, `logging` | **Siguiente** |
+| Barra roja de pestaña activa, buscador del sidebar | Pendiente |
 | Alerta en línea, conteos por estado en la barra superior | Pendiente |
 | Destello al conectar, sidebar recordada | Hecho |
 | Color de grupo (variante B) | Aprobado; se hace con el backend |
